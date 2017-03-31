@@ -1,6 +1,6 @@
 defmodule Events.Event do
-  # @enforce_keys [:name]
-  defstruct [:datetime_start, :datetime_end, :name, :description, isOvernight: false]
+  @enforce_keys [:name]
+  defstruct [:datetime_start, :datetime_end, :name, :description, isOvernight: false, rooms: []]
 
   alias Events.Event
 
@@ -15,6 +15,8 @@ defmodule Events.Event do
   def name(event), do:           Agent.get(event, fn state -> state.name end)
   def datetime_start(event), do: Agent.get(event, fn state -> state.datetime_start end)
   def datetime_end(event), do:   Agent.get(event, fn state -> state.datetime_end end)
+
+  def set_name(event, name), do: Agent.update(event, &(%Event{&1 | name: name}))
 
   # Setting Datetimes
   def set_datetime_start(event, datetime), do: set_datetime(event, :start, datetime)
@@ -34,6 +36,8 @@ defmodule Events.Event do
   end
 
   # Convenience Printing
+  def wtf(event), do: Agent.get(event, &(&1))
+
   def puts(event), do: Event.to_string(event) |> IO.puts
 
   def to_string(event) do
