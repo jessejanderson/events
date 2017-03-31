@@ -11,14 +11,20 @@ defmodule Events.Event do
     Agent.start_link(fn -> %Event{name: name} end)
   end
 
-  # Get Current State
+  # +-------------------+
+  # | GET CURRENT STATE |
+  # +-------------------+
+
   def name(event), do:           Agent.get(event, fn state -> state.name end)
   def datetime_start(event), do: Agent.get(event, fn state -> state.datetime_start end)
   def datetime_end(event), do:   Agent.get(event, fn state -> state.datetime_end end)
 
   def set_name(event, name), do: Agent.update(event, &(%Event{&1 | name: name}))
 
-  # Setting Datetimes
+  # +---------------+
+  # | SET DATETIMES |
+  # +---------------+
+
   def set_datetime_start(event, datetime), do: set_datetime(event, :start, datetime)
   def set_datetime_end(event, datetime),   do: set_datetime(event, :end, datetime)
 
@@ -35,7 +41,10 @@ defmodule Events.Event do
     set_datetime(event, start_or_end, datetime)
   end
 
-  # Convenience Printing
+  # +----------------------+
+  # | CONVENIENCE PRINTING |
+  # +----------------------+
+
   def wtf(event), do: Agent.get(event, &(&1))
 
   def puts(event), do: Event.to_string(event) |> IO.puts
