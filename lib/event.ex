@@ -1,6 +1,11 @@
 defmodule Events.Event do
   @moduledoc false
 
+  alias Events.Event
+  alias Events.Room
+  alias Calendar.DateTime
+  alias Calendar.DateTime.Format
+
   @enforce_keys [:name]
   defstruct [
     :name,
@@ -10,8 +15,6 @@ defmodule Events.Event do
     is_overnight: false,
     rooms: []
   ]
-
-  alias Events.Event
 
   # Assumed for now
   @timezone "America/Los_Angeles"
@@ -62,7 +65,6 @@ defmodule Events.Event do
   def init(name) do
     {:ok, %Event{name: name}}
   end
-
 
   # GET STATE
   # =========
@@ -157,6 +159,6 @@ defmodule Events.Event do
 
   def format_datetime_for_print(nil), do: ""
   def format_datetime_for_print(datetime) do
-    Calendar.DateTime.Format.rfc850(datetime)
+    Format.rfc850(datetime)
   end
 end

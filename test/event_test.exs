@@ -63,7 +63,7 @@ defmodule EventTest do
   test "Add a room", state do
     assert [] = Event.rooms(state[:event])
 
-    {:ok, room} = Events.Room.start_link("Room 1")
+    {:ok, room} = Events.Room.start_link("Room 101")
     Event.add_room(state[:event], room)
     assert [^room] = Event.rooms(state[:event])
   end

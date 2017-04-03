@@ -1,13 +1,13 @@
 defmodule Events.Room do
   @moduledoc false
 
+  alias Events.Room
+  alias Events.Event
+
   use GenServer
 
   @enforce_keys [:name]
   defstruct [:name, approvers: [], events: []]
-
-  alias Events.Room
-  alias Events.Event
 
   # +-------+
   # | A P I |
@@ -94,5 +94,8 @@ defmodule Events.Room do
   # +-----------------------+
   # | C O N V E N I E N C E |
   # +-----------------------+
+
+  def wtf(event), do: GenServer.call(event, :wtf)
+  def handle_call(:wtf, _from, state), do: reply_tuple(state)
 
 end
