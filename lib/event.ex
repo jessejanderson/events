@@ -54,8 +54,12 @@ defmodule Events.Event do
     GenServer.call(event, {:set_is_overnight, is_overnight})
   end
 
-  def add_room(event, room) do
+  def add_room(event, room) when is_pid(room) do
     GenServer.call(event, {:add_room, room})
+  end
+
+  def add_rooms(event, rooms) when is_list(rooms) do
+    GenServer.call(event, {:add_rooms, rooms})
   end
 
   # +-------------------+
@@ -140,6 +144,13 @@ defmodule Events.Event do
     |> reply_tuple
   end
 
+  def handle_call({:add_rooms, rooms}, _from, state) do
+    rooms
+    |> add_self_to_rooms
+    |> add_rooms_to_event_state(state)
+    |> reply_tuple
+  end
+
   # +---------------+
   # | P R I V A T E |
   # +---------------+
@@ -156,8 +167,17 @@ defmodule Events.Event do
     room
   end
 
+  defp add_self_to_rooms(rooms) do
+    Enum.map(rooms, &add_self_to_room/1)
+    rooms
+  end
+
   defp add_room_to_event_state(room, state) do
     Map.update!(state, :rooms, &([room | &1]))
+  end
+
+  defp add_rooms_to_event_state(rooms, state) do
+    Enum.reduce(rooms, state, &(add_room_to_event_state(&1, &2)))
   end
 
   # +-----------------------+
