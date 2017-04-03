@@ -1,5 +1,7 @@
-%{"calendar": {:hex, :calendar, "0.16.1", "782327ad8bae7c797b887840dc4ddb933f05ce6e333e5b04964d7a5d5f79bde3", [:mix], [{:tzdata, "~> 0.5.8 or ~> 0.1.201603", [hex: :tzdata, optional: false]}]},
+%{"bunt": {:hex, :bunt, "0.2.0", "951c6e801e8b1d2cbe58ebbd3e616a869061ddadcc4863d0a2182541acae9a38", [:mix], []},
+  "calendar": {:hex, :calendar, "0.16.1", "782327ad8bae7c797b887840dc4ddb933f05ce6e333e5b04964d7a5d5f79bde3", [:mix], [{:tzdata, "~> 0.5.8 or ~> 0.1.201603", [hex: :tzdata, optional: false]}]},
   "certifi": {:hex, :certifi, "1.0.0", "1c787a85b1855ba354f0b8920392c19aa1d06b0ee1362f9141279620a5be2039", [:rebar3], []},
+  "credo": {:hex, :credo, "0.7.2", "850463f126c09227994967fdcf8b8ad7684ab220f7727c00bcafc0ac37bd3660", [:mix], [{:bunt, "~> 0.2.0", [hex: :bunt, optional: false]}]},
   "dogma": {:hex, :dogma, "0.1.14", "561abecb25a2408738e7d2bc34cc565a07e6fadbc4fb91b2cbb35a5a9234cf1c", [:mix], [{:poison, ">= 2.0.0", [hex: :poison, optional: false]}]},
   "fs": {:hex, :fs, "2.12.0", "ad631efacc9a5683c8eaa1b274e24fa64a1b8eb30747e9595b93bec7e492e25e", [:rebar3], []},
   "hackney": {:hex, :hackney, "1.7.1", "e238c52c5df3c3b16ce613d3a51c7220a784d734879b1e231c9babd433ac1cb4", [:rebar3], [{:certifi, "1.0.0", [hex: :certifi, optional: false]}, {:idna, "4.0.0", [hex: :idna, optional: false]}, {:metrics, "1.0.1", [hex: :metrics, optional: false]}, {:mimerl, "1.0.2", [hex: :mimerl, optional: false]}, {:ssl_verify_fun, "1.1.1", [hex: :ssl_verify_fun, optional: false]}]},

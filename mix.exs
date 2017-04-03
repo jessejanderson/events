@@ -31,6 +31,7 @@ defmodule Events.Mixfile do
   defp deps do
     [
       {:calendar, "~> 0.16.1"},
+      {:credo, "~> 0.7", only: [:dev, :test]},
       {:dogma, "~> 0.1", only: :dev},
       {:mix_test_watch, "~> 0.3", only: :dev, runtime: false},
     ]
