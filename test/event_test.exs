@@ -71,10 +71,36 @@ defmodule EventTest do
   test "Add multiple rooms", state do
     assert [] = Event.rooms(state[:event])
 
-    {:ok, room1} = Events.Room.start_link("Room 1")
-    {:ok, room2} = Events.Room.start_link("Room 2")
+    {:ok, room1} = Events.Room.start_link("Room 101")
+    {:ok, room2} = Events.Room.start_link("Room 202")
     Event.add_room(state[:event], [room1, room2])
     assert [^room1, ^room2] = Event.rooms(state[:event])
+  end
+
+  test "Check for identical start/end time conflicts", state do
+    event1 = state[:event]
+    {:ok, event2} = Event.start_link("My Second Event")
+
+    {:ok, room1} = Events.Room.start_link("Room 101")
+    {:ok, room2} = Events.Room.start_link("Room 202")
+    {:ok, room3} = Events.Room.start_link("Room 303")
+
+    assert Event.conflicts(event1) = []
+    assert Event.conflicts(event2) = []
+
+    Event.add_room(event1, [room1, room2])
+    Event.add_room(event2, [room1, room3])
+
+    assert [^room1, ^room2] = Event.rooms(event1)
+    assert [^room1, ^room3] = Event.rooms(event2)
+
+    Event.set_datetime_start(event1, {{2017, 5, 30}, {13, 0, 0}})
+    Event.set_datetime_end(event1, {{2017, 5, 30}, {15, 0, 0}})
+    Event.set_datetime_start(event2, {{2017, 5, 30}, {13, 0, 0}})
+    Event.set_datetime_end(event2, {{2017, 5, 30}, {15, 0, 0}})
+
+    assert Event.conflicts(event1) = [event2]
+    assert Event.conflicts(event2) = [event1]
   end
 
 end

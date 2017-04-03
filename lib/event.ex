@@ -38,12 +38,12 @@ defmodule Events.Event do
     GenServer.call(event, {:set_name, name})
   end
 
-  def set_datetime_start(event, datetime) do
-    GenServer.call(event, {:set_datetime_start, datetime})
+  def set_datetime_start(event, datetime_erl) do
+    GenServer.call(event, {:set_datetime_start, datetime_erl})
   end
 
-  def set_datetime_end(event, datetime) do
-    GenServer.call(event, {:set_datetime_end, datetime})
+  def set_datetime_end(event, datetime_erl) do
+    GenServer.call(event, {:set_datetime_end, datetime_erl})
   end
 
   def set_description(event, description) do
@@ -106,13 +106,25 @@ defmodule Events.Event do
     |> reply_tuple
   end
 
-  def handle_call({:set_datetime_start, datetime}, _from, state) do
-    %Event{state | datetime_start: convert_to_cal_datetime(datetime)}
+  def handle_call({:set_datetime_start, datetime_erl}, _from, state) do
+    # datetime_erl
+    # |> convert_to_cal_datetime(state.rooms)
+    # |> check_for_conflicts(state.datetime_end, state.rooms)
+
+    %Event{state | datetime_start: convert_to_cal_datetime(datetime_erl)}
     |> reply_tuple
   end
 
-  def handle_call({:set_datetime_end, datetime}, _from, state) do
-    %Event{state | datetime_end: convert_to_cal_datetime(datetime)}
+  def check_for_conflicts(datetime_start, datetime_end, rooms) do
+    # check every room to see if the start-time
+    # is before the end-time of any other events
+    # and also check to see if the end-time
+    # is after the start-time of those matching event
+    # Enum.map
+  end
+
+  def handle_call({:set_datetime_end, datetime_erl}, _from, state) do
+    %Event{state | datetime_end: convert_to_cal_datetime(datetime_erl)}
     |> reply_tuple
   end
 
@@ -122,8 +134,9 @@ defmodule Events.Event do
   end
 
   def handle_call({:add_room, room}, _from, state) do
-    rooms = [room | state.rooms] |> List.flatten
-    %Event{state | rooms: rooms}
+    room
+    |> add_self_to_room
+    |> add_room_to_event_state(state)
     |> reply_tuple
   end
 
@@ -134,13 +147,25 @@ defmodule Events.Event do
   defp reply_tuple(state), do: {:reply, state, state}
 
   defp convert_to_cal_datetime({{_y, _mo, _d}, {_h, _mi, _s}} = datetime) do
-    {:ok, cal_datetime} = Calendar.DateTime.from_erl(datetime, @timezone)
+    {:ok, cal_datetime} = DateTime.from_erl(datetime, @timezone)
     cal_datetime
+  end
+
+  defp add_self_to_room(room) do
+    Room.add_event(room, self())
+    room
+  end
+
+  defp add_room_to_event_state(room, state) do
+    Map.update!(state, :rooms, &([room | &1]))
   end
 
   # +-----------------------+
   # | C O N V E N I E N C E |
   # +-----------------------+
+
+  def wtf(event), do: GenServer.call(event, :wtf)
+  def handle_call(:wtf, _from, state), do: reply_tuple(state)
 
   def puts(event), do: event |> Event.print_to_string |> IO.puts
 
