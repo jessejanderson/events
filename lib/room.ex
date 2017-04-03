@@ -1,5 +1,8 @@
 defmodule Events.Room do
+  @moduledoc false
+
   use GenServer
+
   @enforce_keys [:name]
   defstruct [:name, approvers: [], events: []]
 
@@ -42,9 +45,23 @@ defmodule Events.Room do
     {:ok, %Room{name: name}}
   end
 
-  def handle_call(:name, _from, state),      do: {:reply, state.name, state}
-  def handle_call(:events, _from, state),    do: {:reply, state.events, state}
-  def handle_call(:approvers, _from, state), do: {:reply, state.approvers, state}
+  # GET STATE
+  # =========
+
+  def handle_call(:name, _from, state) do
+    {:reply, state.name, state}
+  end
+
+  def handle_call(:events, _from, state) do
+    {:reply, state.events, state}
+  end
+
+  def handle_call(:approvers, _from, state) do
+    {:reply, state.approvers, state}
+  end
+
+  # SET STATE
+  # =========
 
   def handle_call({:set_name, name}, _from, state) do
     %Room{state | name: name}
@@ -52,13 +69,13 @@ defmodule Events.Room do
   end
 
   def handle_call({:add_event, event}, _from, state) do
-    events = [event|state.events] |> List.flatten
+    events = [event | state.events] |> List.flatten
     %Room{state | events: events}
     |> reply_tuple
   end
 
   def handle_call({:add_approver, approver}, _from, state) do
-    approvers = [approver|state.approvers] |> List.flatten
+    approvers = [approver | state.approvers] |> List.flatten
     %Room{state | approvers: approvers}
     |> reply_tuple
   end

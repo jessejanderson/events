@@ -1,6 +1,15 @@
 defmodule Events.Event do
+  @moduledoc false
+
   @enforce_keys [:name]
-  defstruct [:name, :datetime_start, :datetime_end, :description, is_overnight: false, rooms: []]
+  defstruct [
+    :name,
+    :datetime_start,
+    :datetime_end,
+    :description,
+    is_overnight: false,
+    rooms: []
+  ]
 
   alias Events.Event
 
@@ -54,12 +63,36 @@ defmodule Events.Event do
     {:ok, %Event{name: name}}
   end
 
-  def handle_call(:name, _from, state),           do: {:reply, state.name, state}
-  def handle_call(:datetime_start, _from, state), do: {:reply, state.datetime_start, state}
-  def handle_call(:datetime_end, _from, state),   do: {:reply, state.datetime_end, state}
-  def handle_call(:description, _from, state),    do: {:reply, state.description, state}
-  def handle_call(:is_overnight, _from, state),   do: {:reply, state.is_overnight, state}
-  def handle_call(:rooms, _from, state),          do: {:reply, state.rooms, state}
+
+  # GET STATE
+  # =========
+
+  def handle_call(:name, _from, state) do
+    {:reply, state.name, state}
+  end
+
+  def handle_call(:datetime_start, _from, state) do
+    {:reply, state.datetime_start, state}
+  end
+
+  def handle_call(:datetime_end, _from, state) do
+    {:reply, state.datetime_end, state}
+  end
+
+  def handle_call(:description, _from, state) do
+    {:reply, state.description, state}
+  end
+
+  def handle_call(:is_overnight, _from, state) do
+    {:reply, state.is_overnight, state}
+  end
+
+  def handle_call(:rooms, _from, state) do
+    {:reply, state.rooms, state}
+  end
+
+  # SET STATE
+  # =========
 
   def handle_call({:set_name, name}, _from, state) do
     %Event{state | name: name}
@@ -87,7 +120,7 @@ defmodule Events.Event do
   end
 
   def handle_call({:add_room, room}, _from, state) do
-    rooms = [room|state.rooms] |> List.flatten
+    rooms = [room | state.rooms] |> List.flatten
     %Event{state | rooms: rooms}
     |> reply_tuple
   end
@@ -107,15 +140,23 @@ defmodule Events.Event do
   # | C O N V E N I E N C E |
   # +-----------------------+
 
-  def puts(event), do: Event.to_string(event) |> IO.puts
+  def puts(event), do: event |> Event.print_to_string |> IO.puts
 
-  def to_string(event) do
+  def print_to_string(event) do
     name = event |> Event.name
-    datetime_start = event |> Event.datetime_start |> Event.format_datetime_for_print
-    datetime_end = event |> Event.datetime_end |> Event.format_datetime_for_print
+    datetime_start = event
+    |> Event.datetime_start
+    |> Event.format_datetime_for_print
+
+    datetime_end = event
+      |> Event.datetime_end
+      |> Event.format_datetime_for_print
+
     "Event: #{name}\nStart: #{datetime_start}\nEnd: #{datetime_end}"
   end
 
   def format_datetime_for_print(nil), do: ""
-  def format_datetime_for_print(datetime), do: Calendar.DateTime.Format.rfc850(datetime)
+  def format_datetime_for_print(datetime) do
+    Calendar.DateTime.Format.rfc850(datetime)
+  end
 end

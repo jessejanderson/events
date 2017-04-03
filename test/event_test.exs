@@ -40,7 +40,7 @@ defmodule EventTest do
   end
 
   test "Add datetime_end", state do
-    assert nil == Event.datetime_end(state[:event])
+    refute Event.datetime_end(state[:event])
 
     Event.set_datetime_end(state[:event], {{2020, 5, 30}, {21, 30, 0}})
     datetime = Event.datetime_end(state[:event])
@@ -54,7 +54,7 @@ defmodule EventTest do
   end
 
   test "Update is_overnight to true", state do
-    assert false == Event.is_overnight(state[:event])
+    refute Event.is_overnight(state[:event])
 
     Event.set_is_overnight(state[:event], true)
     assert true = Event.is_overnight(state[:event])
