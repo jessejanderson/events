@@ -7,7 +7,7 @@ defmodule EventTest do
   @name "My Event"
 
   setup do
-    {:ok, event} = Event.start_link("My Event")
+    {:ok, event} = Event.start_link(@name)
     {:ok, event: event}
   end
 

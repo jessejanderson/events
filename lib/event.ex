@@ -107,8 +107,6 @@ defmodule Events.Event do
   # | C O N V E N I E N C E |
   # +-----------------------+
 
-  def wtf(event), do: Agent.get(event, &(&1))
-
   def puts(event), do: Event.to_string(event) |> IO.puts
 
   def to_string(event) do
