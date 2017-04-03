@@ -62,41 +62,41 @@ defmodule Events.Event do
   def handle_call(:rooms, _from, state),          do: {:reply, state.rooms, state}
 
   def handle_call({:set_name, name}, _from, state) do
-    new_state = %Event{state | name: name}
-    {:reply, new_state, new_state}
+    %Event{state | name: name}
+    |> reply_tuple
   end
 
   def handle_call({:set_description, description}, _from, state) do
-    new_state = %Event{state | description: description}
-    {:reply, new_state, new_state}
+    %Event{state | description: description}
+    |> reply_tuple
   end
 
   def handle_call({:set_datetime_start, datetime}, _from, state) do
-    cal_datetime = convert_to_cal_datetime(datetime)
-    new_state = %Event{state | datetime_start: cal_datetime}
-    {:reply, new_state, new_state}
+    %Event{state | datetime_start: convert_to_cal_datetime(datetime)}
+    |> reply_tuple
   end
 
   def handle_call({:set_datetime_end, datetime}, _from, state) do
-    cal_datetime = convert_to_cal_datetime(datetime)
-    new_state = %Event{state | datetime_end: cal_datetime}
-    {:reply, new_state, new_state}
+    %Event{state | datetime_end: convert_to_cal_datetime(datetime)}
+    |> reply_tuple
   end
 
   def handle_call({:set_is_overnight, is_overnight}, _from, state) do
-    new_state = %Event{state | is_overnight: is_overnight}
-    {:reply, new_state, new_state}
+    %Event{state | is_overnight: is_overnight}
+    |> reply_tuple
   end
 
   def handle_call({:add_room, room}, _from, state) do
     rooms = [room|state.rooms] |> List.flatten
-    new_state = %Event{state | rooms: rooms}
-    {:reply, new_state, new_state}
+    %Event{state | rooms: rooms}
+    |> reply_tuple
   end
 
   # +---------------+
   # | P R I V A T E |
   # +---------------+
+
+  defp reply_tuple(state), do: {:reply, state, state}
 
   defp convert_to_cal_datetime({{_y, _mo, _d}, {_h, _mi, _s}} = datetime) do
     {:ok, cal_datetime} = Calendar.DateTime.from_erl(datetime, @timezone)
