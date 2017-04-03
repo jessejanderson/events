@@ -1,49 +1,111 @@
 defmodule Events.Event do
   @enforce_keys [:name]
-  defstruct [:datetime_start, :datetime_end, :name, :description, isOvernight: false, rooms: []]
+  defstruct [:name, :datetime_start, :datetime_end, :description, is_overnight: false, rooms: []]
 
   alias Events.Event
 
   # Assumed for now
   @timezone "America/Los_Angeles"
 
+  # +-------+
+  # | A P I |
+  # +-------+
+
   def start_link(name) do
-    Agent.start_link(fn -> %Event{name: name} end)
+    GenServer.start_link(__MODULE__, name)
+  end
+
+  def name(event),           do: GenServer.call(event, :name)
+  def datetime_start(event), do: GenServer.call(event, :datetime_start)
+  def datetime_end(event),   do: GenServer.call(event, :datetime_end)
+  def description(event),    do: GenServer.call(event, :description)
+  def is_overnight(event),   do: GenServer.call(event, :is_overnight)
+  def rooms(event),          do: GenServer.call(event, :rooms)
+
+  def set_name(event, name) do
+    GenServer.call(event, {:set_name, name})
+  end
+
+  def set_datetime_start(event, datetime) do
+    GenServer.call(event, {:set_datetime_start, datetime})
+  end
+
+  def set_datetime_end(event, datetime) do
+    GenServer.call(event, {:set_datetime_end, datetime})
+  end
+
+  def set_description(event, description) do
+    GenServer.call(event, {:set_description, description})
+  end
+
+  def set_is_overnight(event, is_overnight) do
+    GenServer.call(event, {:set_is_overnight, is_overnight})
+  end
+
+  def add_room(event, room) do
+    GenServer.call(event, {:add_room, room})
   end
 
   # +-------------------+
-  # | GET CURRENT STATE |
+  # | C A L L B A C K S |
   # +-------------------+
 
-  def name(event), do:           Agent.get(event, fn state -> state.name end)
-  def datetime_start(event), do: Agent.get(event, fn state -> state.datetime_start end)
-  def datetime_end(event), do:   Agent.get(event, fn state -> state.datetime_end end)
+  def init(name) do
+    {:ok, %Event{name: name}}
+  end
 
-  def set_name(event, name), do: Agent.update(event, &(%Event{&1 | name: name}))
+  def handle_call(:name, _from, state),           do: {:reply, state.name, state}
+  def handle_call(:datetime_start, _from, state), do: {:reply, state.datetime_start, state}
+  def handle_call(:datetime_end, _from, state),   do: {:reply, state.datetime_end, state}
+  def handle_call(:description, _from, state),    do: {:reply, state.description, state}
+  def handle_call(:is_overnight, _from, state),   do: {:reply, state.is_overnight, state}
+  def handle_call(:rooms, _from, state),          do: {:reply, state.rooms, state}
+
+  def handle_call({:set_name, name}, _from, state) do
+    new_state = %Event{state | name: name}
+    {:reply, new_state, new_state}
+  end
+
+  def handle_call({:set_description, description}, _from, state) do
+    new_state = %Event{state | description: description}
+    {:reply, new_state, new_state}
+  end
+
+  def handle_call({:set_datetime_start, datetime}, _from, state) do
+    cal_datetime = convert_to_cal_datetime(datetime)
+    new_state = %Event{state | datetime_start: cal_datetime}
+    {:reply, new_state, new_state}
+  end
+
+  def handle_call({:set_datetime_end, datetime}, _from, state) do
+    cal_datetime = convert_to_cal_datetime(datetime)
+    new_state = %Event{state | datetime_end: cal_datetime}
+    {:reply, new_state, new_state}
+  end
+
+  def handle_call({:set_is_overnight, is_overnight}, _from, state) do
+    new_state = %Event{state | is_overnight: is_overnight}
+    {:reply, new_state, new_state}
+  end
+
+  def handle_call({:add_room, room}, _from, state) do
+    rooms = [room|state.rooms] |> List.flatten
+    new_state = %Event{state | rooms: rooms}
+    {:reply, new_state, new_state}
+  end
 
   # +---------------+
-  # | SET DATETIMES |
+  # | P R I V A T E |
   # +---------------+
 
-  def set_datetime_start(event, datetime), do: set_datetime(event, :start, datetime)
-  def set_datetime_end(event, datetime),   do: set_datetime(event, :end, datetime)
-
-  defp set_datetime(event, :start, %DateTime{} = datetime) do
-    Agent.update(event, &(%Event{&1 | datetime_start: datetime}))
+  defp convert_to_cal_datetime({{_y, _mo, _d}, {_h, _mi, _s}} = datetime) do
+    {:ok, cal_datetime} = Calendar.DateTime.from_erl(datetime, @timezone)
+    cal_datetime
   end
 
-  defp set_datetime(event, :end, %DateTime{} = datetime) do
-    Agent.update(event, &(%Event{&1 | datetime_end: datetime}))
-  end
-
-  defp set_datetime(event, start_or_end, {{_y, _mo, _d}, {_h, _mi, _s}} = datetime_erl) do
-    {:ok, datetime} = Calendar.DateTime.from_erl(datetime_erl, @timezone)
-    set_datetime(event, start_or_end, datetime)
-  end
-
-  # +----------------------+
-  # | CONVENIENCE PRINTING |
-  # +----------------------+
+  # +-----------------------+
+  # | C O N V E N I E N C E |
+  # +-----------------------+
 
   def wtf(event), do: Agent.get(event, &(&1))
 
