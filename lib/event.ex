@@ -15,7 +15,7 @@ defmodule Events.Event do
     rooms: []
   ]
 
-  # Assumed for now
+  # TODO: get dynamic tz from org or local
   @timezone "America/Los_Angeles"
 
   # +-------+
