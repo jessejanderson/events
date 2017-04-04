@@ -54,6 +54,10 @@ defmodule Events.Event do
     GenServer.call(event, {:set_is_overnight, is_overnight})
   end
 
+  def add_room(event, {:no_return, room}) when is_pid(room) do
+    GenServer.call(event, {:no_return, :add_room, room})
+  end
+
   def add_room(event, room) when is_pid(room) do
     GenServer.call(event, {:add_room, room})
   end
@@ -137,6 +141,12 @@ defmodule Events.Event do
     |> reply_tuple
   end
 
+  def handle_call({:no_return, :add_room, room}, _from, state) do
+    room
+    |> add_room_to_event_state(state)
+    |> reply_tuple
+  end
+
   def handle_call({:add_room, room}, _from, state) do
     room
     |> add_self_to_room
@@ -163,20 +173,24 @@ defmodule Events.Event do
   end
 
   defp add_self_to_room(room) do
-    Room.add_event(room, self())
+    Room.add_event(room, {:no_return, self()})
     room
   end
 
   defp add_self_to_rooms(rooms) do
-    Enum.map(rooms, &add_self_to_room/1)
+    Enum.each(rooms, &add_self_to_room/1)
     rooms
   end
 
   defp add_room_to_event_state(room, state) do
-    Map.update!(state, :rooms, &([room | &1]))
+    case room in state.rooms do
+      true -> state
+      false -> Map.update!(state, :rooms, &([room | &1]))
+    end
   end
 
   defp add_rooms_to_event_state(rooms, state) do
+    # TODO: need to check in state.rooms
     Enum.reduce(rooms, state, &(add_room_to_event_state(&1, &2)))
   end
 

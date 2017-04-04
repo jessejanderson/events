@@ -21,34 +21,44 @@ defmodule RoomTest do
   end
 
   test "Add an event", state do
-    assert [] = Room.events(state[:room])
+    room = state[:room]
+    assert [] = Room.events(room)
 
     {:ok, event} = Events.Event.start_link("Event 1")
-    Room.add_event(state[:room], event)
-    assert [^event] = Room.events(state[:room])
+    Room.add_event(room, event)
+    assert [^event] = Room.events(room)
   end
 
   test "Add multiple events", state do
-    assert [] = Room.events(state[:room])
+    room = state[:room]
+    assert [] = Room.events(room)
 
     {:ok, event1} = Events.Event.start_link("Event 1")
     {:ok, event2} = Events.Event.start_link("Event 2")
-    Room.add_event(state[:room], [event1, event2])
-    assert [^event1, ^event2] = Room.events(state[:room])
+    Room.add_events(room, [event1, event2])
+
+    assert Enum.member?(Room.events(room), event1)
+    assert Enum.member?(Room.events(room), event2)
+
+
+    {:ok, event3} = Events.Event.start_link("Event 3")
+    refute Enum.member?(Room.events(room), event3)
   end
 
-  test "Add an approver", state do
-    assert [] = Room.approvers(state[:room])
+  # test "Add an approver", state do
+  #   room = state[:room]
+  #   assert [] = Room.approvers(room)
 
-    Room.add_approver(state[:room], "Jack")
-    assert ["Jack"] = Room.approvers(state[:room])
-  end
+  #   Room.add_approver(room, "Jack")
+  #   assert ["Jack"] = Room.approvers(room)
+  # end
 
-  test "Add multiple approvers", state do
-    assert [] = Room.approvers(state[:room])
+  # test "Add multiple approvers", state do
+  #   room = state[:room]
+  #   assert [] = Room.approvers(room)
 
-    Room.add_approver(state[:room], ["Jack", "Kate"])
-    assert ["Jack", "Kate"] = Room.approvers(state[:room])
-  end
+  #   Room.add_approvers(room, ["Jack", "Kate"])
+  #   assert ["Jack", "Kate"] = Room.approvers(room)
+  # end
 
 end

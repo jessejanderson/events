@@ -7,7 +7,11 @@ defmodule Events.Room do
   use GenServer
 
   @enforce_keys [:name]
-  defstruct [:name, approvers: [], events: []]
+  defstruct [
+    :name,
+    approvers: [],
+    events: []
+  ]
 
   # +-------+
   # | A P I |
@@ -25,12 +29,24 @@ defmodule Events.Room do
     GenServer.call(event, {:set_name, name})
   end
 
-  def add_event(room, event) do
+  def add_event(room, {:no_return, event}) when is_pid(event)do
+    GenServer.call(room, {:no_return, :add_event, event})
+  end
+
+  def add_event(room, event) when is_pid(event)do
     GenServer.call(room, {:add_event, event})
   end
 
-  def add_approver(approver, event) do
-    GenServer.call(approver, {:add_approver, event})
+  def add_events(room, events) when is_list(events) do
+    GenServer.call(room, {:add_events, events})
+  end
+
+  def add_approver(room, approver) when is_pid(approver) do
+    GenServer.call(room, {:add_approver, approver})
+  end
+
+  def add_approvers(room, approvers) when is_list(approvers) do
+    GenServer.call(room, {:add_approvers, approvers})
   end
 
   def list_events(room) do
@@ -68,9 +84,23 @@ defmodule Events.Room do
     |> reply_tuple
   end
 
+  def handle_call({:no_return, :add_event, event}, _from, state) do
+    event
+    |> add_event_to_room_state(state)
+    |> reply_tuple
+  end
+
   def handle_call({:add_event, event}, _from, state) do
-    events = [event | state.events] |> List.flatten
-    %Room{state | events: events}
+    event
+    |> add_self_to_event
+    |> add_event_to_room_state(state)
+    |> reply_tuple
+  end
+
+  def handle_call({:add_events, events}, _from, state) do
+    events
+    # |> add_self_to_events
+    |> add_events_to_room_state(state)
     |> reply_tuple
   end
 
@@ -90,6 +120,35 @@ defmodule Events.Room do
   # +---------------+
 
   defp reply_tuple(state), do: {:reply, state, state}
+
+  defp check_already_exists(event, state) do
+    case event in state.events do
+      true  -> {:exists, event}
+      false -> {:new, event}
+    end
+  end
+
+  defp add_self_to_event(event) do
+    Event.add_room(event, {:no_return, self()})
+    event
+  end
+
+  defp add_self_to_events(events) do
+    Enum.each(events, &add_self_to_event/1)
+    events
+  end
+
+  defp add_event_to_room_state(event, state) do
+    case event in state.events do
+      true -> state
+      false -> Map.update!(state, :events, &([event | &1]))
+    end
+  end
+
+  defp add_events_to_room_state(events, state) do
+    # TODO: need check in state.events
+    Enum.reduce(events, state, &(add_event_to_room_state(&1, &2)))
+  end
 
   # +-----------------------+
   # | C O N V E N I E N C E |
