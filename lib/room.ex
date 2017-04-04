@@ -1,8 +1,7 @@
 defmodule Events.Room do
   @moduledoc false
 
-  alias Events.Room
-  alias Events.Event
+  alias Events.{Conflict, Event, Room}
 
   use GenServer
 

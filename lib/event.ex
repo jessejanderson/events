@@ -1,9 +1,11 @@
 defmodule Events.Event do
   @moduledoc false
 
-  alias Events.{Event, Room}
+  alias Events.{Conflict, Event, Room}
   alias Calendar.DateTime
   alias Calendar.DateTime.Format
+
+  use GenServer
 
   @enforce_keys [:name]
   defstruct [
