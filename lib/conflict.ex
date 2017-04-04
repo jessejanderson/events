@@ -19,9 +19,10 @@ defmodule Events.Conflict do
   #  What does this return?
 
   #     1     2     3     4     5
-  #  A  [-----------]
-  #  B        [-----------------]
-  #  C        [-----------]
+  #  A        [-----------]
+  #  B  [-----------]
+  #  C        [-----------------]
+  #  D              [-----------]
 
 
   #  [Q2]
@@ -32,11 +33,29 @@ defmodule Events.Conflict do
   #  3. Each room asks each event if it has conflicts with new interval
   #  4. Each event replies with true/false
   #  5. Each room take reply, return {room_pid, [event_pids]} if .any? are true
-  #  6. Event.conflicts = [{room, [events]}, {room2, [events2]}]
+  #  6. Event.conflicts = [%Conflict{room: room, events: [...]}, ...]
 
   #  EXAMPLE:
-  # conflicts: [{PID<1.1>, [PID<1.2>, PID<1.3>]}, {PID<2.1>, [PID<2.2>]}]
+  # [%Conflict{room: PID<1.1>, events: [PID<1.2>, PID<1.3>]}, %Conflict{...}]
+  # actually...
+  # [PID<3.1>, PID<3.2>] #each pid points to a process with %Conflict{} state
 
+  # 1. Event.set_datetime_start(event, datetime_erl)
+  # 2. Event -> Room.event_conflicts(room, interval)
+  # 3. Room -> Event.conflicts(event, interval)
+
+
+  #  [Q3]
+  #  Where do conflicts live?
+
+  #  Rooms have a list of all associated events
+  #    and can return a list of conflicts by checking all events
+  #  Events have a list of all associated rooms
+  #    doesn't have conflicts
+  #    but can find them by asking all rooms
+  #  Ultimately conflicts live as floating processes
+  #    that are referenced as conflicts within Rooms.conflicts
+  #    and need to die when a conflict goes away
 
   # +-------+
   # | A P I |
