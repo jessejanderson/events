@@ -27,7 +27,10 @@ defmodule EventTest do
 
   test "Add datetime_start", state do
     event = state[:event]
-    refute Event.datetime_start(event)
+    assert %Calendar.DateTime.Interval{from: nil, to: nil} = Event.interval(event)
+
+    {:ok, room} = Events.Room.start_link("101")
+    Event.add_room(event, room)
 
     Event.set_datetime_start(event, {{2020, 5, 30}, {20, 0, 0}})
     datetime = Event.datetime_start(event)
@@ -53,14 +56,6 @@ defmodule EventTest do
     assert 21   = datetime.hour
     assert 30   = datetime.minute
     assert 0    = datetime.second
-  end
-
-  test "Update is_overnight to true", state do
-    event = state[:event]
-    refute Event.is_overnight(event)
-
-    Event.set_is_overnight(event, true)
-    assert true = Event.is_overnight(event)
   end
 
   test "Add a room", state do

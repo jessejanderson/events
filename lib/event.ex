@@ -3,17 +3,15 @@ defmodule Events.Event do
 
   alias Events.{Conflict, Event, Room}
   alias Calendar.DateTime
-  alias Calendar.DateTime.Format
+  alias Calendar.DateTime.{Format, Interval}
 
   use GenServer
 
   @enforce_keys [:name]
   defstruct [
-    :name,
-    :datetime_start,
-    :datetime_end,
     :description,
-    is_overnight: false,
+    :name,
+    interval: %Interval{},
     rooms: []
   ]
 
@@ -32,8 +30,11 @@ defmodule Events.Event do
   def datetime_start(event), do: GenServer.call(event, :datetime_start)
   def datetime_end(event),   do: GenServer.call(event, :datetime_end)
   def description(event),    do: GenServer.call(event, :description)
-  def is_overnight(event),   do: GenServer.call(event, :is_overnight)
+  def interval(event),       do: GenServer.call(event, :interval)
   def rooms(event),          do: GenServer.call(event, :rooms)
+
+  def is_overnight(event),   do: GenServer.call(event, :is_overnight)
+  def duration(event),       do: GenServer.call(event, :duration)
 
   def set_name(event, name) do
     GenServer.call(event, {:set_name, name})
@@ -49,10 +50,6 @@ defmodule Events.Event do
 
   def set_description(event, description) do
     GenServer.call(event, {:set_description, description})
-  end
-
-  def set_is_overnight(event, is_overnight) do
-    GenServer.call(event, {:set_is_overnight, is_overnight})
   end
 
   def add_room(event, {:no_return, room}) when is_pid(room) do
@@ -83,23 +80,35 @@ defmodule Events.Event do
   end
 
   def handle_call(:datetime_start, _from, state) do
-    {:reply, state.datetime_start, state}
+    datetime_start = state.interval.from
+    {:reply, datetime_start, state}
   end
 
   def handle_call(:datetime_end, _from, state) do
-    {:reply, state.datetime_end, state}
+    {:reply, state.interval.to, state}
   end
 
   def handle_call(:description, _from, state) do
     {:reply, state.description, state}
   end
 
-  def handle_call(:is_overnight, _from, state) do
-    {:reply, state.is_overnight, state}
+  def handle_call(:interval, _from, state) do
+    {:reply, state.interval, state}
   end
 
   def handle_call(:rooms, _from, state) do
     {:reply, state.rooms, state}
+  end
+
+  def handle_call(:is_overnight, _from, state) do
+    # TODO: check duration for 24+ hours
+    {:reply, false, state}
+  end
+
+  def handle_call(:duration, _from, state) do
+    {:ok, duration_in_seconds, _, :after} =
+      DateTime.diff(state.interval.to, state.interval.from)
+    {:reply, duration_in_seconds, state}
   end
 
   # SET STATE
@@ -118,24 +127,22 @@ defmodule Events.Event do
   def handle_call({:set_datetime_start, datetime_erl}, _from, state) do
     datetime_erl
     |> convert_to_cal_datetime
-    |> check_for_conflicts(state.datetime_end, state.rooms)
+    |> check_for_conflicts(state.interval.to, state.rooms)
     |> add_conflict_to_event
     |> set_datetime_start_for_event(state)
     |> reply_tuple
-
-    # new_datetime = datetime_erl |> convert_to_cal_datetime
-
-    # %Event{state | datetime_start: new_datetime}
-    # |> reply_tuple
   end
 
   def handle_call({:set_datetime_end, datetime_erl}, _from, state) do
-    %Event{state | datetime_end: convert_to_cal_datetime(datetime_erl)}
-    |> reply_tuple
-  end
-
-  def handle_call({:set_is_overnight, is_overnight}, _from, state) do
-    %Event{state | is_overnight: is_overnight}
+    # datetime = convert_to_cal_datetime(datetime_erl)
+    # new_interval = %Interval{state.interval | to: datetime}
+    # %Event{state | interval: new_interval}
+    # |> reply_tuple
+    datetime_erl
+    |> convert_to_cal_datetime
+    |> check_for_conflicts(state.interval.to, state.rooms)
+    |> add_conflict_to_event
+    |> set_datetime_end_for_event(state)
     |> reply_tuple
   end
 
@@ -171,27 +178,44 @@ defmodule Events.Event do
   end
 
   def check_for_conflicts(datetime_start, datetime_end, rooms) do
-    conflicts = Enum.filter(rooms, fn(state) ->
-      conflict?(datetime_start, datetime_end, state)
-    end)
+    # TODO: make conflict/3 work!
+    # this is a broken half-baked idea
+    # conflicts = Enum.filter(rooms, fn(room) ->
+    #   Enum.any?(room.events, fn(event) ->
+    #     conflict?(datetime_start, datetime_end, event)
+    #   end)
+    # end)
+
+    # We'll just say no conflicts for now
+    conflicts = []
     {conflicts, datetime_start}
   end
 
-  def conflict?(datetime_start, datetime_end, state) do
-    Datetime.before?(datetime_start, state.datetime_end)
-    &&
-    Datetime.after?(datetime_end, state.datetime_start)
+  def conflict?(datetime_start, datetime_end, event) do
+    # TODO: ask Rooms to check their events for given date conflicts
+    # Each room will ask its events for start/end datetimes
+    # and return event pids that have a conflict
+
+    # Interval.includes?(Event.interval(event), datetime_start)
+    # &&
+    # Interval.includes?(Event.interval(event), datetime_end)
   end
 
-  def add_conflict_to_event({[], datetime_start}), do: datetime_start
-  def add_conflict_to_event({conflicts, datetime_start}) do
+  def add_conflict_to_event({[], datetime}), do: datetime
+  def add_conflict_to_event({conflicts, datetime}) do
     # TODO: create a %Conflict, add it to Event AND Room
     # %Event{state | conflicts: [conflict | ]}
-    datetime_start
+    datetime
   end
 
   def set_datetime_start_for_event(datetime_start, state) do
-    %Event{state | datetime_start: datetime_start}
+    new_interval = %Interval{state.interval | from: datetime_start}
+    %Event{state | interval: new_interval}
+  end
+
+  def set_datetime_end_for_event(datetime_start, state) do
+    new_interval = %Interval{state.interval | to: datetime_start}
+    %Event{state | interval: new_interval}
   end
 
   defp add_self_to_room(room) do
