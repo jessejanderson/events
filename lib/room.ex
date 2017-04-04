@@ -146,7 +146,6 @@ defmodule Events.Room do
   end
 
   defp add_events_to_room_state(events, state) do
-    # TODO: need check in state.events
     Enum.reduce(events, state, &(add_event_to_room_state(&1, &2)))
   end
 

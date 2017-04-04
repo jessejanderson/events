@@ -29,7 +29,7 @@ defmodule EventTest do
     event = state[:event]
     refute Event.datetime_start(event)
 
-    Event.set_datetime_start(state[:event], {{2020, 5, 30}, {20, 0, 0}})
+    Event.set_datetime_start(event, {{2020, 5, 30}, {20, 0, 0}})
     datetime = Event.datetime_start(event)
 
     assert 2020 = datetime.year
@@ -106,6 +106,7 @@ defmodule EventTest do
   end
 
   # test "Check for identical start/end time conflicts", state do
+  #   # TODO: create Events.Conflict to manage all this
   #   event1 = state[:event]
   #   {:ok, event2} = Event.start_link("My Second Event")
 
@@ -116,16 +117,18 @@ defmodule EventTest do
   #   # assert Event.conflicts(event1) = []
   #   # assert Event.conflicts(event2) = []
 
-  #   Event.add_room(event1, [room1, room2])
-  #   Event.add_room(event2, [room1, room3])
+  #   Event.add_rooms(event1, [room1, room2])
+  #   Event.add_rooms(event2, [room1, room3])
 
-  #   assert [^room1, ^room2] = Event.rooms(event1)
-  #   assert [^room1, ^room3] = Event.rooms(event2)
+  #   assert Enum.member?(Event.rooms(event1), room1)
+  #   assert Enum.member?(Event.rooms(event1), room2)
+  #   assert Enum.member?(Event.rooms(event2), room1)
+  #   assert Enum.member?(Event.rooms(event2), room3)
 
-  #   Event.set_datetime_start(event1, {{2017, 5, 30}, {13, 0, 0}})
-  #   Event.set_datetime_end(event1, {{2017, 5, 30}, {15, 0, 0}})
-  #   Event.set_datetime_start(event2, {{2017, 5, 30}, {13, 0, 0}})
-  #   Event.set_datetime_end(event2, {{2017, 5, 30}, {15, 0, 0}})
+  #   # Event.set_datetime_start(event1, {{2017, 5, 30}, {13, 0, 0}})
+  #   # Event.set_datetime_end(event1, {{2017, 5, 30}, {15, 0, 0}})
+  #   # Event.set_datetime_start(event2, {{2017, 5, 30}, {13, 0, 0}})
+  #   # Event.set_datetime_end(event2, {{2017, 5, 30}, {15, 0, 0}})
 
   #   # assert Event.conflicts(event1) = [event2]
   #   # assert Event.conflicts(event2) = [event1]

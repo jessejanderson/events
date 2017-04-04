@@ -1,8 +1,7 @@
 defmodule Events.Event do
   @moduledoc false
 
-  alias Events.Event
-  alias Events.Room
+  alias Events.{Event, Room}
   alias Calendar.DateTime
   alias Calendar.DateTime.Format
 
@@ -115,20 +114,17 @@ defmodule Events.Event do
   end
 
   def handle_call({:set_datetime_start, datetime_erl}, _from, state) do
-    # datetime_erl
-    # |> convert_to_cal_datetime(state.rooms)
-    # |> check_for_conflicts(state.datetime_end, state.rooms)
-
-    %Event{state | datetime_start: convert_to_cal_datetime(datetime_erl)}
+    datetime_erl
+    |> convert_to_cal_datetime
+    |> check_for_conflicts(state.datetime_end, state.rooms)
+    |> add_conflict_to_event
+    |> set_datetime_start_for_event(state)
     |> reply_tuple
-  end
 
-  def check_for_conflicts(datetime_start, datetime_end, rooms) do
-    # check every room to see if the start-time
-    # is before the end-time of any other events
-    # and also check to see if the end-time
-    # is after the start-time of those matching event
-    # Enum.map
+    # new_datetime = datetime_erl |> convert_to_cal_datetime
+
+    # %Event{state | datetime_start: new_datetime}
+    # |> reply_tuple
   end
 
   def handle_call({:set_datetime_end, datetime_erl}, _from, state) do
@@ -143,21 +139,21 @@ defmodule Events.Event do
 
   def handle_call({:no_return, :add_room, room}, _from, state) do
     room
-    |> add_room_to_event_state(state)
+    |> add_room_to_event(state)
     |> reply_tuple
   end
 
   def handle_call({:add_room, room}, _from, state) do
     room
     |> add_self_to_room
-    |> add_room_to_event_state(state)
+    |> add_room_to_event(state)
     |> reply_tuple
   end
 
   def handle_call({:add_rooms, rooms}, _from, state) do
     rooms
     |> add_self_to_rooms
-    |> add_rooms_to_event_state(state)
+    |> add_rooms_to_event(state)
     |> reply_tuple
   end
 
@@ -172,6 +168,30 @@ defmodule Events.Event do
     cal_datetime
   end
 
+  def check_for_conflicts(datetime_start, datetime_end, rooms) do
+    conflicts = Enum.filter(rooms, fn(state) ->
+      conflict?(datetime_start, datetime_end, state)
+    end)
+    {conflicts, datetime_start}
+  end
+
+  def conflict?(datetime_start, datetime_end, state) do
+    Datetime.before?(datetime_start, state.datetime_end)
+    &&
+    Datetime.after?(datetime_end, state.datetime_start)
+  end
+
+  def add_conflict_to_event({[], datetime_start}), do: datetime_start
+  def add_conflict_to_event({conflicts, datetime_start}) do
+    # TODO: create a %Conflict, add it to Event AND Room
+    # %Event{state | conflicts: [conflict | ]}
+    datetime_start
+  end
+
+  def set_datetime_start_for_event(datetime_start, state) do
+    %Event{state | datetime_start: datetime_start}
+  end
+
   defp add_self_to_room(room) do
     Room.add_event(room, {:no_return, self()})
     room
@@ -182,16 +202,15 @@ defmodule Events.Event do
     rooms
   end
 
-  defp add_room_to_event_state(room, state) do
+  defp add_room_to_event(room, state) do
     case room in state.rooms do
       true -> state
       false -> Map.update!(state, :rooms, &([room | &1]))
     end
   end
 
-  defp add_rooms_to_event_state(rooms, state) do
-    # TODO: need to check in state.rooms
-    Enum.reduce(rooms, state, &(add_room_to_event_state(&1, &2)))
+  defp add_rooms_to_event(rooms, state) do
+    Enum.reduce(rooms, state, &(add_room_to_event(&1, &2)))
   end
 
   # +-----------------------+
