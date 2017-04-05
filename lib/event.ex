@@ -64,11 +64,16 @@ defmodule Events.Event do
     GenServer.call(event, {:add_rooms, rooms})
   end
 
+  def conflict?(event, %Interval{} = interval) do
+    GenServer.call(event, {:conflict, interval})
+  end
+
   # +-------------------+
   # | C A L L B A C K S |
   # +-------------------+
 
   def init(name) do
+    IO.puts "Starting Event process (name: #{name})"
     {:ok, %Event{name: name}}
   end
 
@@ -80,8 +85,7 @@ defmodule Events.Event do
   end
 
   def handle_call(:datetime_start, _from, state) do
-    datetime_start = state.interval.from
-    {:reply, datetime_start, state}
+    {:reply, state.interval.from, state}
   end
 
   def handle_call(:datetime_end, _from, state) do
@@ -134,13 +138,9 @@ defmodule Events.Event do
   end
 
   def handle_call({:set_datetime_end, datetime_erl}, _from, state) do
-    # datetime = convert_to_cal_datetime(datetime_erl)
-    # new_interval = %Interval{state.interval | to: datetime}
-    # %Event{state | interval: new_interval}
-    # |> reply_tuple
     datetime_erl
     |> convert_to_cal_datetime
-    |> check_for_conflicts(state.interval.to, state.rooms)
+    |> check_for_conflicts(state.interval.from, state.rooms)
     |> add_conflict_to_event
     |> set_datetime_end_for_event(state)
     |> reply_tuple
@@ -164,6 +164,15 @@ defmodule Events.Event do
     |> add_self_to_rooms
     |> add_rooms_to_event(state)
     |> reply_tuple
+  end
+
+  def handle_call({:conflict, interval}, _from, state) do
+    conflict =
+      state.interval
+      |> Map.from_struct
+      |> Map.values
+      |> Enum.any?(&(Interval.includes?(interval, &1)))
+    {:reply, conflict, state}
   end
 
   # +---------------+
@@ -191,7 +200,7 @@ defmodule Events.Event do
     {conflicts, datetime_start}
   end
 
-  def conflict?(datetime_start, datetime_end, event) do
+  # def conflict?(datetime_start, datetime_end, event) do
     # TODO: ask Rooms to check their events for given date conflicts
     # Each room will ask its events for start/end datetimes
     # and return event pids that have a conflict
@@ -199,7 +208,7 @@ defmodule Events.Event do
     # Interval.includes?(Event.interval(event), datetime_start)
     # &&
     # Interval.includes?(Event.interval(event), datetime_end)
-  end
+  # end
 
   def add_conflict_to_event({[], datetime}), do: datetime
   def add_conflict_to_event({conflicts, datetime}) do
@@ -208,13 +217,13 @@ defmodule Events.Event do
     datetime
   end
 
-  def set_datetime_start_for_event(datetime_start, state) do
-    new_interval = %Interval{state.interval | from: datetime_start}
+  def set_datetime_start_for_event(datetime, state) do
+    new_interval = %Interval{state.interval | from: datetime}
     %Event{state | interval: new_interval}
   end
 
-  def set_datetime_end_for_event(datetime_start, state) do
-    new_interval = %Interval{state.interval | to: datetime_start}
+  def set_datetime_end_for_event(datetime, state) do
+    new_interval = %Interval{state.interval | to: datetime}
     %Event{state | interval: new_interval}
   end
 
@@ -251,8 +260,8 @@ defmodule Events.Event do
   def print_to_string(event) do
     name = event |> Event.name
     datetime_start = event
-    |> Event.datetime_start
-    |> Event.format_datetime_for_print
+      |> Event.datetime_start
+      |> Event.format_datetime_for_print
 
     datetime_end = event
       |> Event.datetime_end

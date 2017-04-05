@@ -65,6 +65,10 @@ defmodule Events.Conflict do
     GenServer.start_link(__MODULE__, room)
   end
 
+  def add_events(conflict, events) when is_list(events) do
+    GenServer.call(conflict, {:add_events, events})
+  end
+
   # +-------------------+
   # | C A L L B A C K S |
   # +-------------------+
@@ -73,4 +77,26 @@ defmodule Events.Conflict do
     {:ok, %Conflict{room: room}}
   end
 
+  def handle_call({:add_events, events}, _from, state) do
+    events
+    |> add_events_to_conflict(state)
+    |> reply_tuple
+  end
+
+  # +---------------+
+  # | P R I V A T E |
+  # +---------------+
+
+  def add_event_to_conflict(event, state) do
+    Map.update!(state, :events, &([event | &1]))
+  end
+
+  def add_events_to_conflict(events, state) do
+    Enum.reduce(events, state, &(add_event_to_conflict(&1, &2)))
+  end
+
+  defp reply_tuple(state), do: {:reply, state, state}
+
+  def wtf(conflict), do: GenServer.call(conflict, :wtf)
+  def handle_call(:wtf, _from, state), do: reply_tuple(state)
 end

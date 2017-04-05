@@ -45,6 +45,31 @@ defmodule RoomTest do
     refute Enum.member?(Room.events(room), event3)
   end
 
+  test "Add a conflict", state do
+    room = state[:room]
+    assert [] = Room.conflicts(room)
+
+    {:ok, conflict} = Events.Conflict.start_link(room)
+    Room.add_conflict(room, conflict)
+
+    assert Enum.member?(Room.conflicts(room), conflict)
+  end
+
+  test "Add multiple conflicts", state do
+    room = state[:room]
+    assert [] = Room.conflicts(room)
+
+    {:ok, conflict1} = Events.Conflict.start_link(room)
+    {:ok, conflict2} = Events.Conflict.start_link(room)
+    {:ok, conflict3} = Events.Conflict.start_link(room)
+
+    Room.add_conflicts(room, [conflict1, conflict2])
+
+    assert Enum.member?(Room.conflicts(room), conflict1)
+    assert Enum.member?(Room.conflicts(room), conflict2)
+    refute Enum.member?(Room.conflicts(room), conflict3)
+  end
+
   # test "Add an approver", state do
   #   room = state[:room]
   #   assert [] = Room.approvers(room)
