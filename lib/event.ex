@@ -1,7 +1,8 @@
 defmodule Events.Event do
   @moduledoc false
 
-  alias Events.{Conflict, Event, Events, Helpers, Room}
+  alias Events.{Conflict, Event, Helpers, Room}
+  alias Calendar.DateTime.Interval
 
   use GenServer
 
@@ -25,7 +26,8 @@ defmodule Events.Event do
     GenServer.start_link(__MODULE__, name)
   end
 
-  def list_rooms(event), do: GenServer.call(event, :list_rooms)
+  def interval(event), do: GenServer.call(event, :interval)
+  def rooms(event),    do: GenServer.call(event, :rooms)
 
   def set_interval(event, start_erl, end_erl) do
     GenServer.call(event, {:set_interval, start_erl, end_erl})
@@ -39,19 +41,22 @@ defmodule Events.Event do
     GenServer.call(event, {:remove_room, room})
   end
 
+  def conflict?(event, %Calendar.DateTime.Interval{} = interval) do
+    GenServer.call(event, {:conflict, interval})
+  end
+
   # +-------------------+
   # | C A L L B A C K S |
   # +-------------------+
 
   def init(name) do
     IO.puts "- - - Event: \"#{name}\" #{inspect self()} :: Initializing"
-    Events.add_event(self())
+    Events.Events.add_event(self())
     {:ok, %__MODULE__{name: name}}
   end
 
-  def handle_call(:list_rooms, _from, state) do
-    {:reply, state.rooms, state}
-  end
+  def handle_call(:interval, _from, state), do: {:reply, state.interval, state}
+  def handle_call(:rooms, _from, state),    do: {:reply, state.rooms, state}
 
   def handle_call({:set_interval, start_erl, end_erl}, _from, state) do
     interval = Events.DateTime.create_interval(start_erl, end_erl, @timezone)
@@ -61,7 +66,7 @@ defmodule Events.Event do
 
   def handle_call({:add_room, room}, _from, state) do
     {:ok, rooms} = Helpers.add_pid_if_unique(state.rooms, room)
-    :ok = Events.Room.add_event(room, self())
+    Events.Room.add_event(room, self())
     new_state = %__MODULE__{state | rooms: rooms}
     {:reply, :ok, new_state}
   end
@@ -71,6 +76,14 @@ defmodule Events.Event do
     :ok = Events.Room.remove_event(room, self())
     new_state = %__MODULE__{state | rooms: rooms}
     {:reply, :ok, new_state}
+  end
+
+  def handle_call({:conflict, interval}, _from, state) do
+    conflict =
+      Interval.includes?(interval, state.interval.from)
+      ||
+      Interval.includes?(interval, state.interval.to)
+    {:reply, conflict, state}
   end
 
   # +---------------+

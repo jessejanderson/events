@@ -18,8 +18,8 @@ defmodule Events.Events do
     GenServer.start_link(__MODULE__, events, name: @name)
   end
 
-  def list_events do
-    GenServer.call(@name, :list_events)
+  def events do
+    GenServer.call(@name, :events)
   end
 
   def add_event(event) when is_pid(event) do
@@ -39,7 +39,7 @@ defmodule Events.Events do
     {:ok, events}
   end
 
-  def handle_call(:list_events, _from, state) do
+  def handle_call(:events, _from, state) do
     {:reply, state, state}
   end
 

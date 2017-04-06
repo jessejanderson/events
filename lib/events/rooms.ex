@@ -18,8 +18,8 @@ defmodule Events.Rooms do
     GenServer.start_link(__MODULE__, rooms, name: @name)
   end
 
-  def list_rooms do
-    GenServer.call(@name, :list_rooms)
+  def rooms do
+    GenServer.call(@name, :rooms)
   end
 
   def add_room(room) when is_pid(room) do
@@ -39,7 +39,7 @@ defmodule Events.Rooms do
     {:ok, rooms}
   end
 
-  def handle_call(:list_rooms, _from, state) do
+  def handle_call(:rooms, _from, state) do
     {:reply, state, state}
   end
 

@@ -26,7 +26,7 @@ defmodule Events.Room do
     GenServer.stop(room, reason, timeout)
   end
 
-  def list_events(room), do: GenServer.call(room, :list_events)
+  def events(room), do: GenServer.call(room, :events)
 
   def add_event(room, event) when is_pid(event) do
     GenServer.call(room, {:add_event, event})
@@ -52,7 +52,7 @@ defmodule Events.Room do
     IO.puts "- - - Removed Room process \"#{state.name}\" from Rooms"
   end
 
-  def handle_call(:list_events, _from, state) do
+  def handle_call(:events, _from, state) do
     {:reply, state.events, state}
   end
 
@@ -62,9 +62,10 @@ defmodule Events.Room do
   end
 
   def handle_call({:add_event, event}, _from, state) do
+    conflicts = check_for_conflicts(event, state.events)
     {:ok, events} = Helpers.add_pid_if_unique(state.events, event)
     new_state = %__MODULE__{state | events: events}
-    {:reply, :ok, new_state}
+    {:reply, conflicts, new_state}
   end
 
   def handle_call({:remove_event, event}, _from, state) do
@@ -76,6 +77,16 @@ defmodule Events.Room do
   # +---------------+
   # | P R I V A T E |
   # +---------------+
+
+  # TODO: have this return the right thing
+  def check_for_conflicts(new_event, []), do: []
+  def check_for_conflicts(new_event, events) do
+    events
+    |> Enum.filter(
+      fn event ->
+        Event.conflict?(event, Event.interval(new_event))
+      end)
+  end
 
   # +-----------------------+
   # | C O N V E N I E N C E |
