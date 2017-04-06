@@ -66,7 +66,7 @@ defmodule Events.Event do
 
   def handle_call({:add_room, room}, _from, state) do
     {:ok, rooms} = Helpers.add_pid_if_unique(state.rooms, room)
-    Events.Room.add_event(room, self())
+    Events.Room.add_event(room, self(), state.interval)
     new_state = %__MODULE__{state | rooms: rooms}
     {:reply, :ok, new_state}
   end

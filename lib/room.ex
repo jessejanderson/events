@@ -28,8 +28,8 @@ defmodule Events.Room do
 
   def events(room), do: GenServer.call(room, :events)
 
-  def add_event(room, event) when is_pid(event) do
-    GenServer.call(room, {:add_event, event})
+  def add_event(room, event, interval) when is_pid(event) do
+    GenServer.call(room, {:add_event, event, interval})
   end
 
   def remove_event(room, event) when is_pid(event) do
@@ -61,11 +61,16 @@ defmodule Events.Room do
     {:stop, :normal, state}
   end
 
-  def handle_call({:add_event, event}, _from, state) do
-    conflicts = check_for_conflicts(event, state.events)
+  def handle_call({:add_event, event, interval}, _from, state) do
     {:ok, events} = Helpers.add_pid_if_unique(state.events, event)
-    new_state = %__MODULE__{state | events: events}
-    {:reply, conflicts, new_state}
+
+    conflicts =
+      state.events
+      |> check_for_conflicts(event, interval)
+      |> Enum.into(state.conflicts)
+
+    new_state = %__MODULE__{state | events: events, conflicts: conflicts}
+    {:reply, new_state, new_state}
   end
 
   def handle_call({:remove_event, event}, _from, state) do
@@ -78,15 +83,15 @@ defmodule Events.Room do
   # | P R I V A T E |
   # +---------------+
 
-  # TODO: have this return the right thing
-  def check_for_conflicts(new_event, []), do: []
-  def check_for_conflicts(new_event, events) do
+  def check_for_conflicts([], _event, _interval), do: []
+  def check_for_conflicts(events, event, interval) do
     events
-    |> Enum.filter(
-      fn event ->
-        Event.conflict?(event, Event.interval(new_event))
-      end)
+    |> Enum.filter(&(Event.conflict?(&1, interval)))
+    |> add_pid_if_not_empty(event)
   end
+
+  def add_pid_if_not_empty([], _pid),  do: []
+  def add_pid_if_not_empty(list, pid), do: [pid | list]
 
   # +-----------------------+
   # | C O N V E N I E N C E |
