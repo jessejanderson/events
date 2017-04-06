@@ -3,7 +3,7 @@ defmodule Events.Rooms do
     Holds all the rooms
   """
 
-  alias Events.{Helpers}
+  alias Events.Helpers
 
   use GenServer
 
@@ -14,7 +14,7 @@ defmodule Events.Rooms do
   # +-------+
 
   def start_link(rooms \\ []) when is_list(rooms) do
-    IO.puts "===== Starting Rooms process, #{inspect self()}"
+    IO.puts "===== ROOMS: #{inspect self()} :: Starting"
     GenServer.start_link(__MODULE__, rooms, name: @name)
   end
 
@@ -35,7 +35,7 @@ defmodule Events.Rooms do
   # +-------------------+
 
   def init(rooms) do
-    IO.puts "- - - Initializing Rooms process, #{inspect self()}"
+    IO.puts "- - - ROOMS: #{inspect self()} :: Initializing"
     {:ok, rooms}
   end
 

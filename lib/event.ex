@@ -1,7 +1,7 @@
 defmodule Events.Event do
   @moduledoc false
 
-  alias Events.{Conflict, Event, Helpers, Room}
+  alias Events.{Conflict, Event, Events, Helpers, Room}
 
   use GenServer
 
@@ -21,7 +21,7 @@ defmodule Events.Event do
   # +-------+
 
   def start_link(name) do
-    IO.puts "===== Starting Event process: \"#{name}\", #{inspect self()}"
+    IO.puts "===== Event: \"#{name}\" #{inspect self()} :: Starting"
     GenServer.start_link(__MODULE__, name)
   end
 
@@ -31,11 +31,11 @@ defmodule Events.Event do
     GenServer.call(event, {:set_interval, start_erl, end_erl})
   end
 
-  def add_room(event, room) do
+  def add_room(event, room) when is_pid(room) do
     GenServer.call(event, {:add_room, room})
   end
 
-  def remove_room(event, room) do
+  def remove_room(event, room) when is_pid(room) do
     GenServer.call(event, {:remove_room, room})
   end
 
@@ -44,7 +44,8 @@ defmodule Events.Event do
   # +-------------------+
 
   def init(name) do
-    IO.puts "- - - Initializing Event process: \"#{name}\", #{inspect self()}"
+    IO.puts "- - - Event: \"#{name}\" #{inspect self()} :: Initializing"
+    Events.add_event(self())
     {:ok, %__MODULE__{name: name}}
   end
 
@@ -58,14 +59,14 @@ defmodule Events.Event do
     {:reply, :ok, new_state}
   end
 
-  def handle_call({:add_room, room}, _from, state) when is_pid(room) do
+  def handle_call({:add_room, room}, _from, state) do
     {:ok, rooms} = Helpers.add_pid_if_unique(state.rooms, room)
     :ok = Events.Room.add_event(room, self())
     new_state = %__MODULE__{state | rooms: rooms}
     {:reply, :ok, new_state}
   end
 
-  def handle_call({:remove_room, room}, _from, state) when is_pid(room) do
+  def handle_call({:remove_room, room}, _from, state) do
     rooms = List.delete(state.rooms, room)
     :ok = Events.Room.remove_event(room, self())
     new_state = %__MODULE__{state | rooms: rooms}
