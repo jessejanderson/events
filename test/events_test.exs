@@ -2,23 +2,52 @@ defmodule EventsTest do
   use ExUnit.Case
   doctest Events
 
-  alias Events.{Event, Room, Rooms}
+  alias Events.{Event, EventsList, Room, RoomsList}
 
-  @event_name "My Event"
+  @event_name "My First Event"
   @room_name "Room 101"
+  @date1 {{2020, 1, 1}, {1, 0, 0}}
+  @date2 {{2020, 1, 1}, {2, 0, 0}}
+  @date3 {{2020, 1, 1}, {3, 0, 0}}
+  @date4 {{2020, 1, 1}, {4, 0, 0}}
+  @date5 {{2020, 1, 1}, {4, 0, 0}}
+  @date6 {{2020, 1, 1}, {4, 0, 0}}
 
-  # setup do
-  #   {:ok, event} = Event.start_link(@name)
-  #   {:ok, event: event}
-  # end
-
-  test "Create a new event and add a room" do
-    Rooms.start_link
-    {:ok, event} = Event.start_link(@event_name)
+  setup do
+    EventsList.start_link
+    RoomsList.start_link
+    {:ok, event1} = Event.start_link(@event_name)
     {:ok, room1} = Room.start_link(@room_name)
-    Event.add_room(event, room1)
+    {:ok, event1: event1, room1: room1}
+  end
 
-    assert [^room1] = Event.list_rooms(event)
-    assert [^event] = Room.list_events(room1)
+  test "Add a room to an event", %{event1: event1, room1: room1} do
+    Event.set_interval(event1, @date1, @date2)
+    Event.add_room(event1, room1)
+
+    assert event1 in EventsList.events
+    assert event1 in Room.events(room1)
+
+    assert room1 in RoomsList.rooms
+    assert room1 in Event.rooms(event1)
+  end
+
+  test "Add a room to 2 events and create a conflict",
+  %{event1: event1, room1: room1} do
+    {:ok, event2} = Event.start_link("My Second Event")
+    Event.set_interval(event1, @date1, @date3)
+    Event.set_interval(event2, @date2, @date4)
+
+    Event.add_room(event1, room1)
+    Event.add_room(event2, room1)
+
+    conflict_events =
+      room1
+      |> Room.conflicts
+      |> hd
+      |> Map.get(:events)
+
+    assert event1 in conflict_events
+    assert event2 in conflict_events
   end
 end

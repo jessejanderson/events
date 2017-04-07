@@ -1,4 +1,4 @@
-defmodule Events.Events do
+defmodule Events.EventsList do
   @moduledoc """
     Holds all the events
   """

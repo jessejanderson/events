@@ -1,7 +1,7 @@
 defmodule Events.Event do
   @moduledoc false
 
-  alias Events.{Conflict, Event, Helpers, Room}
+  alias Events.{Conflict, Event, EventsList, Helpers, Room}
   alias Calendar.DateTime.Interval
 
   use GenServer
@@ -51,7 +51,7 @@ defmodule Events.Event do
 
   def init(name) do
     IO.puts "- - - Event: \"#{name}\" #{inspect self()} :: Initializing"
-    Events.Events.add_event(self())
+    EventsList.add_event(self())
     {:ok, %__MODULE__{name: name}}
   end
 

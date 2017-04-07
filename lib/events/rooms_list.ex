@@ -1,4 +1,4 @@
-defmodule Events.Rooms do
+defmodule Events.RoomsList do
   @moduledoc """
     Holds all the rooms
   """

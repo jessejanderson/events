@@ -1,4 +1,4 @@
-alias Events.{Conflict, Event, Room, Rooms}
+alias Events.{Conflict, Event, EventsList, Room, RoomsList}
 # alias Calendar.DateTime
 # alias Calendar.DateTime.Interval
 
@@ -6,8 +6,8 @@ timezone = "America/Los_Angeles"
 
 IO.puts "##### Create a new event with 2 rooms"
 
-{:ok, rooms} = Rooms.start_link
-{:ok, events} = Events.Events.start_link
+RoomsList.start_link
+EventsList.start_link
 
 {:ok, room1} = Room.start_link("Room 101")
 {:ok, room2} = Room.start_link("Room 202")

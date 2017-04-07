@@ -1,7 +1,7 @@
 defmodule Events.Room do
   @moduledoc false
 
-  alias Events.{Conflict, Event, Helpers, Room, Rooms}
+  alias Events.{Conflict, Event, Helpers, Room, RoomsList}
 
   use GenServer
 
@@ -26,7 +26,9 @@ defmodule Events.Room do
     GenServer.stop(room, reason, timeout)
   end
 
-  def events(room), do: GenServer.call(room, :events)
+  def conflicts(room), do: GenServer.call(room, :conflicts)
+  def events(room),    do: GenServer.call(room, :events)
+  def name(room),      do: GenServer.call(room, :name)
 
   def add_event(room, event, interval) when is_pid(event) do
     GenServer.call(room, {:add_event, event, interval})
@@ -42,22 +44,22 @@ defmodule Events.Room do
 
   def init(name) do
     IO.puts "- - - Room: \"#{name}\" #{inspect self()} :: Initializing"
-    Rooms.add_room(self())
+    RoomsList.add_room(self())
     {:ok, %Room{name: name}}
   end
 
   def terminate(reason, state) do
     IO.puts "!!!!! Killing Room process: \"#{state.name}\", #{inspect self()}"
-    Rooms.remove_room(self())
-    IO.puts "- - - Removed Room process \"#{state.name}\" from Rooms"
+    RoomsList.remove_room(self())
+    IO.puts "- - - Removed Room process \"#{state.name}\" from RoomsList"
   end
 
-  def handle_call(:events, _from, state) do
-    {:reply, state.events, state}
-  end
+  def handle_call(:conflicts, _from, st), do: {:reply, st.conflicts, st}
+  def handle_call(:events, _from, st),    do: {:reply, st.events, st}
+  def handle_call(:name, _from, st),      do: {:reply, st.name, st}
 
   def _call(:terminate, _from, state) do
-    Rooms.remove_room(self())
+    RoomsList.remove_room(self())
     {:stop, :normal, state}
   end
 
@@ -66,7 +68,8 @@ defmodule Events.Room do
 
     conflicts =
       state.events
-      |> check_for_conflicts(event, interval)
+      |> check_for_conflicts(interval)
+      |> Conflict.create_conflicts({event, interval}, self())
       |> Enum.into(state.conflicts)
 
     new_state = %__MODULE__{state | events: events, conflicts: conflicts}
@@ -83,11 +86,9 @@ defmodule Events.Room do
   # | P R I V A T E |
   # +---------------+
 
-  def check_for_conflicts([], _event, _interval), do: []
-  def check_for_conflicts(events, event, interval) do
-    events
-    |> Enum.filter(&(Event.conflict?(&1, interval)))
-    |> add_pid_if_not_empty(event)
+  def check_for_conflicts([], _interval), do: []
+  def check_for_conflicts(events, interval) do
+    Enum.filter(events, &(Event.conflict?(&1, interval)))
   end
 
   def add_pid_if_not_empty([], _pid),  do: []
