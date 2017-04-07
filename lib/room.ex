@@ -17,7 +17,7 @@ defmodule Events.Room do
   # +-------+
 
   def start_link(name) do
-    IO.puts "===== Room: \"#{name}\" #{inspect self()} :: Starting"
+    # IO.puts "===== Room: \"#{name}\" #{inspect self()} :: Starting"
     GenServer.start_link(__MODULE__, name)
   end
 
@@ -43,7 +43,7 @@ defmodule Events.Room do
   # +-------------------+
 
   def init(name) do
-    IO.puts "- - - Room: \"#{name}\" #{inspect self()} :: Initializing"
+    # IO.puts "- - - Room: \"#{name}\" #{inspect self()} :: Initializing"
     RoomsList.add_room(self())
     {:ok, %Room{name: name}}
   end

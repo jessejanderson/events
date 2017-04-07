@@ -14,7 +14,7 @@ defmodule Events.RoomsList do
   # +-------+
 
   def start_link(rooms \\ []) when is_list(rooms) do
-    IO.puts "===== ROOMS: #{inspect self()} :: Starting"
+    # IO.puts "===== ROOMS: #{inspect self()} :: Starting"
     GenServer.start_link(__MODULE__, rooms, name: @name)
   end
 
@@ -35,7 +35,7 @@ defmodule Events.RoomsList do
   # +-------------------+
 
   def init(rooms) do
-    IO.puts "- - - ROOMS: #{inspect self()} :: Initializing"
+    # IO.puts "- - - ROOMS: #{inspect self()} :: Initializing"
     {:ok, rooms}
   end
 

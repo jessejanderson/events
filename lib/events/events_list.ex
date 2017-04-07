@@ -14,7 +14,7 @@ defmodule Events.EventsList do
   # +-------+
 
   def start_link(events \\ []) when is_list(events) do
-    IO.puts "===== EVENTS: #{inspect self()} :: Starting"
+    # IO.puts "===== EVENTS: #{inspect self()} :: Starting"
     GenServer.start_link(__MODULE__, events, name: @name)
   end
 
@@ -35,7 +35,7 @@ defmodule Events.EventsList do
   # +-------------------+
 
   def init(events) do
-    IO.puts "- - - EVENTS: #{inspect self()} :: Initializing"
+    # IO.puts "- - - EVENTS: #{inspect self()} :: Initializing"
     {:ok, events}
   end
 

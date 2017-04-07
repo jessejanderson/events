@@ -2,7 +2,9 @@ defmodule Events.Event do
   @moduledoc false
 
   alias Events.{Conflict, Event, EventsList, Helpers, Room}
+  alias Events.Event.Schedule
   alias Calendar.DateTime.Interval
+  alias Calendar.DateTime, as: CalDT
 
   use GenServer
 
@@ -11,7 +13,8 @@ defmodule Events.Event do
     :description,
     :name,
     interval: %Calendar.DateTime.Interval{},
-    rooms: []
+    rooms: [],
+    schedule: %Schedule{},
   ]
 
   # TODO: get dynamic tz from org or local
@@ -22,26 +25,34 @@ defmodule Events.Event do
   # +-------+
 
   def start_link(name) do
-    IO.puts "===== Event: \"#{name}\" #{inspect self()} :: Starting"
+    # IO.puts "===== Event: \"#{name}\" #{inspect self()} :: Starting"
     GenServer.start_link(__MODULE__, name)
   end
 
   def interval(event), do: GenServer.call(event, :interval)
   def rooms(event),    do: GenServer.call(event, :rooms)
+  def schedule(event), do: GenServer.call(event, :schedule)
+
+  def occurences(event, %CalDT.Interval{from: from, to: to}) do
+  end
 
   def set_interval(event, start_erl, end_erl) do
     GenServer.call(event, {:set_interval, start_erl, end_erl})
   end
 
+  def set_schedule(event, %Schedule{} = schedule) do
+    GenServer.call(event, {:set_schedule, schedule})
+  end
+
   def add_room(event, room) when is_pid(room) do
-    GenServer.call(event, {:add_room, room})
+    GenServer.cast(event, {:add_room, room})
   end
 
   def remove_room(event, room) when is_pid(room) do
     GenServer.call(event, {:remove_room, room})
   end
 
-  def conflict?(event, %Calendar.DateTime.Interval{} = interval) do
+  def conflict?(event, %CalDT.Interval{} = interval) do
     GenServer.call(event, {:conflict, interval})
   end
 
@@ -50,13 +61,21 @@ defmodule Events.Event do
   # +-------------------+
 
   def init(name) do
-    IO.puts "- - - Event: \"#{name}\" #{inspect self()} :: Initializing"
+    # IO.puts "- - - Event: \"#{name}\" #{inspect self()} :: Initializing"
     EventsList.add_event(self())
     {:ok, %__MODULE__{name: name}}
   end
 
+  def handle_cast({:add_room, room}, state) do
+    {:ok, rooms} = Helpers.add_pid_if_unique(state.rooms, room)
+    Events.Room.add_event(room, self(), state.interval)
+    new_state = %__MODULE__{state | rooms: rooms}
+    {:noreply, new_state}
+  end
+
   def handle_call(:interval, _from, state), do: {:reply, state.interval, state}
   def handle_call(:rooms, _from, state),    do: {:reply, state.rooms, state}
+  def handle_call(:schedule, _from, state), do: {:reply, state.schedule, state}
 
   def handle_call({:set_interval, start_erl, end_erl}, _from, state) do
     interval = Events.DateTime.create_interval(start_erl, end_erl, @timezone)
@@ -64,12 +83,17 @@ defmodule Events.Event do
     {:reply, :ok, new_state}
   end
 
-  def handle_call({:add_room, room}, _from, state) do
-    {:ok, rooms} = Helpers.add_pid_if_unique(state.rooms, room)
-    Events.Room.add_event(room, self(), state.interval)
-    new_state = %__MODULE__{state | rooms: rooms}
+  def handle_call({:set_schedule, schedule}, _from, state) do
+    new_state = %__MODULE__{state | schedule: schedule}
     {:reply, :ok, new_state}
   end
+
+  # def handle_call({:add_room, room}, _from, state) do
+  #   {:ok, rooms} = Helpers.add_pid_if_unique(state.rooms, room)
+  #   Events.Room.add_event(room, self(), state.interval)
+  #   new_state = %__MODULE__{state | rooms: rooms}
+  #   {:reply, :ok, new_state}
+  # end
 
   def handle_call({:remove_room, room}, _from, state) do
     rooms = List.delete(state.rooms, room)
