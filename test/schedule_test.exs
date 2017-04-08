@@ -2,7 +2,7 @@ defmodule ScheduleTest do
   use ExUnit.Case
   alias Events.{Event, EventsList, Room, RoomsList}
   alias Events.Event.Schedule
-  alias Calendar.DateTime, as: CalDT
+  # alias Calendar.DateTime, as: CalDT
 
   doctest Schedule
 
@@ -19,12 +19,11 @@ defmodule ScheduleTest do
     {:ok, event1: event1, room1: room1}
   end
 
-  test "Make a daily event", %{event1: event1, room1: room1} do
+  test "Make a daily event", %{event1: event1} do
     Event.set_interval(event1, @date1, @date2)
     Event.set_schedule(
       event1,
       %Schedule{
-        starts: @date1,
         type: :daily,
       }
     )
@@ -34,17 +33,21 @@ defmodule ScheduleTest do
       days_of_month: [],
       ends: :never,
       frequency: 1,
-      starts: @date1,
       type: :daily,
       weeks_of_month: [],
     }
 
     interval =
-      @date1
-      |> Events.DateTime.create_interval({{2020, 1, 7}, {1, 0, 0}}, "America/Los_Angeles")
+      Events.DateTime.create_interval(
+        @date1,
+        {{2020, 1, 7}, {1, 0, 0}},
+        "America/Los_Angeles"
+      )
 
     assert ^schedule = Event.schedule(event1)
 
-    assert 7 = Event.occurrences(event1, interval)
+    occurrences = Event.occurrences(event1, interval)
+
+    assert 7 = Enum.count(occurrences)
   end
 end

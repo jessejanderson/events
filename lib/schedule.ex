@@ -8,7 +8,6 @@ defmodule Events.Event.Schedule do
   %Schedule{
     ends: :never,
     frequency: 2,
-    starts: %DateTime{},
     type: :daily
   }
 
@@ -17,7 +16,6 @@ defmodule Events.Event.Schedule do
     days_of_week: [:monday],
     ends: :never,
     frequency: 2,
-    starts: %DateTime{},
     type: :weekly
   }
 
@@ -26,7 +24,6 @@ defmodule Events.Event.Schedule do
     days_of_week: [:tuesday],
     ends: :never,
     frequency: 1,
-    starts: %DateTime{},
     type: :weekly
   }
 
@@ -36,7 +33,6 @@ defmodule Events.Event.Schedule do
       [:monday, :tuesday, :wednesday, :thursday, :friday, :saturday],
     ends: :never,
     frequency: 1,
-    starts: %DateTime{},
     type: :weekly
   }
 
@@ -45,7 +41,6 @@ defmodule Events.Event.Schedule do
     date_of_month: [3]
     ends: :never,
     frequency: 1,
-    starts: %DateTime{},
     type: :monthly
   }
 
@@ -54,7 +49,6 @@ defmodule Events.Event.Schedule do
     date_of_month: [1, 3]
     ends: :never,
     frequency: 2,
-    starts: %DateTime{},
     type: :monthly
   }
 
@@ -63,7 +57,6 @@ defmodule Events.Event.Schedule do
     day_of_week: [:tuesday]
     ends: {sessions, 6},
     frequency: 4,
-    starts: %DateTime{},
     type: :monthly
     weeks_of_month: [3]
   }
@@ -73,7 +66,6 @@ defmodule Events.Event.Schedule do
   alias Calendar.DateTime, as: CalDT
 
   defstruct [
-    :starts, # %DateTime{} to ensure timezone
     type: :one_time, # :daily, :weekly, :monthly
     days_of_week: [], # :sunday, :monday, ..., :saturday
     days_of_month: [], # 1, 2, ..., 30, 31
@@ -83,22 +75,42 @@ defmodule Events.Event.Schedule do
   ]
 
   def first_occurrence_in_interval(
-    %DateTime{} = from, %Schedule{} = schedule, %CalDT.Interval{} = interval) do
-    after_or_same = CalDT.after?(from, interval.from)
-    first_occurrence_in_interval(from, schedule, interval, after_or_same)
+    %DateTime{} = datetime,
+    %Schedule{} = schedule,
+    %CalDT.Interval{} = interval
+  ) do
+    after_or_same = after_or_same_time?(datetime, interval.from)
+    first_occurrence_in_interval(datetime, schedule, interval, after_or_same)
   end
 
-  def first_occurrence_in_interval(from, schedule, interval, true) do
-    case CalDT.Interval.includes?(interval, from) do
-      true ->  from
+  def first_occurrence_in_interval(datetime, schedule, interval, true) do
+    case CalDT.Interval.includes?(interval, datetime) do
+      true ->  datetime
       false -> :not_in_interval
     end
   end
 
-  def first_occurrence_in_interval(from, schedule, interval, false) do
-    from
+  def first_occurrence_in_interval(datetime, schedule, interval, false) do
+    datetime
     |> advance(schedule)
     |> first_occurrence_in_interval(schedule, interval)
+  end
+
+  def first_occurrence_after_or_same_time(
+  :end_of_schedule, _dt2, _schedule) do
+    :no_occurrence
+  end
+  def first_occurrence_after_or_same_time(
+    %DateTime{} = dt1,
+    %DateTime{} = dt2,
+    %Schedule{} = schedule
+  ) do
+    case after_or_same_time?(dt1, dt2) do
+      true -> dt1
+      false ->
+        new_datetime = dt1 |> advance(schedule)
+        first_occurrence_after_or_same_time(new_datetime, dt2, schedule)
+    end
   end
 
   def occurrences_in_interval(datetime, schedule, interval) do
@@ -130,12 +142,12 @@ defmodule Events.Event.Schedule do
     Timex.shift(datetime, days: schedule.frequency)
   end
 
-  # %Schedule{
-  #   ends: :never,
-  #   frequency: 1,
-  #   starts: %DateTime{},
-  #   type: :daily
-  # }
+  def advance(
+    %DateTime{} = datetime,
+    %Schedule{ends: :never, type: :one_time} = schedule
+  ) do
+    :end_of_schedule
+  end
 
   # +---------------------------------------------------+
   # | "Recurring Events for Calendars" by Martin Fowler |

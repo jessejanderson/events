@@ -25,7 +25,6 @@ defmodule Events.Event do
   # +-------+
 
   def start_link(name) do
-    # IO.puts "===== Event: \"#{name}\" #{inspect self()} :: Starting"
     GenServer.start_link(__MODULE__, name)
   end
 
@@ -37,6 +36,10 @@ defmodule Events.Event do
     GenServer.call(event, {:occurrences, interval})
   end
 
+  def next_occurrence(event) do
+    GenServer.call(event, :next_occurrence)
+  end
+
   def set_interval(event, start_erl, end_erl) do
     GenServer.call(event, {:set_interval, start_erl, end_erl})
   end
@@ -46,7 +49,7 @@ defmodule Events.Event do
   end
 
   def add_room(event, room) when is_pid(room) do
-    GenServer.cast(event, {:add_room, room})
+    GenServer.call(event, {:add_room, room})
   end
 
   def remove_room(event, room) when is_pid(room) do
@@ -62,7 +65,6 @@ defmodule Events.Event do
   # +-------------------+
 
   def init(name) do
-    # IO.puts "- - - Event: \"#{name}\" #{inspect self()} :: Initializing"
     EventsList.add_event(self())
     {:ok, %__MODULE__{name: name}}
   end
@@ -79,17 +81,20 @@ defmodule Events.Event do
   def handle_call(:schedule, _from, state), do: {:reply, state.schedule, state}
 
   def handle_call({:occurrences, interval}, _from, state) do
-    new_state =
+    occurrences =
       state.interval.from
       |> Schedule.first_occurrence_in_interval(state.schedule, interval)
       |> occurrences_in_interval(state.schedule, interval)
 
-    {:reply, new_state, state}
+    {:reply, occurrences, state}
   end
 
-  def occurrences_in_interval(:not_in_interval, _schedule, _interval), do: []
-  def occurrences_in_interval(datetime, schedule, interval) do
-    Schedule.occurrences_in_interval(datetime, schedule, interval)
+  def handle_call(:next_occurrence, _from, state) do
+    now = CalDT.now!(@timezone)
+    next_occurrence =
+      state.interval.from
+      |> Schedule.first_occurrence_after_or_same_time(now, state.schedule)
+    {:reply, next_occurrence, state}
   end
 
   def handle_call({:set_interval, start_erl, end_erl}, _from, state) do
@@ -103,12 +108,12 @@ defmodule Events.Event do
     {:reply, :ok, new_state}
   end
 
-  # def handle_call({:add_room, room}, _from, state) do
-  #   {:ok, rooms} = Helpers.add_pid_if_unique(state.rooms, room)
-  #   Events.Room.add_event(room, self(), state.interval)
-  #   new_state = %__MODULE__{state | rooms: rooms}
-  #   {:reply, :ok, new_state}
-  # end
+  def handle_call({:add_room, room}, _from, state) do
+    {:ok, rooms} = Helpers.add_pid_if_unique(state.rooms, room)
+    Events.Room.add_event(room, self(), state.interval)
+    new_state = %__MODULE__{state | rooms: rooms}
+    {:reply, :ok, new_state}
+  end
 
   def handle_call({:remove_room, room}, _from, state) do
     rooms = List.delete(state.rooms, room)
@@ -128,6 +133,11 @@ defmodule Events.Event do
   # +---------------+
   # | P R I V A T E |
   # +---------------+
+
+  def occurrences_in_interval(:not_in_interval, _schedule, _interval), do: []
+  def occurrences_in_interval(datetime, schedule, interval) do
+    Schedule.occurrences_in_interval(datetime, schedule, interval)
+  end
 
   # +-----------------------+
   # | C O N V E N I E N C E |
