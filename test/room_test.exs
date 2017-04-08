@@ -1,89 +1,47 @@
 defmodule RoomTest do
   use ExUnit.Case
-  alias Events.Room
+  alias Events.{Event, EventsList, Room, RoomsList}
 
   doctest Room
 
-  @name "My Room"
+  @event_name "My First Event"
+  @room_name "Room 101"
+  @date1 {{2020, 1, 1}, {1, 0, 0}}
+  @date2 {{2020, 1, 1}, {2, 0, 0}}
+  # @timezone "America/Los_Angeles"
 
-  # setup do
-  #   {:ok, room} = Room.start_link(@name)
-  #   {:ok, room: room}
-  # end
+  setup do
+    EventsList.start_link
+    RoomsList.start_link
+    {:ok, room} = Room.start_link(@room_name)
+    {:ok, room: room}
+  end
 
-  # test "Room returns name", state do
-  #   assert @name = Room.name(state[:room])
-  # end
+  test "Set name for room", %{room: room} do
+    assert @room_name = Room.name(room)
+    Room.set_name room, "New Name"
+    assert "New Name" = Room.name(room)
+  end
 
-  # test "Change room name", state do
-  #   Room.set_name(state[:room], "New Room Name")
-  #   assert "New Room Name" = Room.name(state[:room])
-  # end
+  test "Add room to event", %{room: room} do
+    {:ok, event} = Event.start_link(@event_name)
+    Event.set_interval event, @date1, @date2
+    Event.add_room event, room
+    assert [^event] = Room.events(room)
+  end
 
-  # test "Add an event", state do
-  #   room = state[:room]
-  #   assert [] = Room.events(room)
-
-  #   {:ok, event} = Events.Event.start_link("Event 1")
-  #   Room.add_event(room, event)
-  #   assert [^event] = Room.events(room)
-  # end
-
-  # test "Add multiple events", state do
-  #   room = state[:room]
-  #   assert [] = Room.events(room)
-
-  #   {:ok, event1} = Events.Event.start_link("Event 1")
-  #   {:ok, event2} = Events.Event.start_link("Event 2")
-  #   Room.add_events(room, [event1, event2])
-
-  #   assert Enum.member?(Room.events(room), event1)
-  #   assert Enum.member?(Room.events(room), event2)
-
-
-  #   {:ok, event3} = Events.Event.start_link("Event 3")
-  #   refute Enum.member?(Room.events(room), event3)
-  # end
-
-  # test "Add a conflict", state do
-  #   room = state[:room]
-  #   assert [] = Room.conflicts(room)
-
-  #   {:ok, conflict} = Events.Conflict.start_link(room)
-  #   Room.add_conflict(room, conflict)
-
-  #   assert Enum.member?(Room.conflicts(room), conflict)
-  # end
-
-  # test "Add multiple conflicts", state do
-  #   room = state[:room]
-  #   assert [] = Room.conflicts(room)
-
-  #   {:ok, conflict1} = Events.Conflict.start_link(room)
-  #   {:ok, conflict2} = Events.Conflict.start_link(room)
-  #   {:ok, conflict3} = Events.Conflict.start_link(room)
-
-  #   Room.add_conflicts(room, [conflict1, conflict2])
-
-  #   assert Enum.member?(Room.conflicts(room), conflict1)
-  #   assert Enum.member?(Room.conflicts(room), conflict2)
-  #   refute Enum.member?(Room.conflicts(room), conflict3)
-  # end
-
-  # test "Add an approver", state do
-  #   room = state[:room]
-  #   assert [] = Room.approvers(room)
-
-  #   Room.add_approver(room, "Jack")
-  #   assert ["Jack"] = Room.approvers(room)
-  # end
-
-  # test "Add multiple approvers", state do
-  #   room = state[:room]
-  #   assert [] = Room.approvers(room)
-
-  #   Room.add_approvers(room, ["Jack", "Kate"])
-  #   assert ["Jack", "Kate"] = Room.approvers(room)
-  # end
+  test "Create conflict for room", %{room: room} do
+    {:ok, event1} = Event.start_link("My First Event")
+    {:ok, event2} = Event.start_link("My Second Event")
+    Event.set_interval event1, @date1, @date2
+    Event.set_interval event2, @date1, @date2
+    Event.add_room event1, room
+    assert [] = Room.conflicts(room)
+    Event.add_room event2, room
+    assert event2 in Room.events(room)
+    conflicts = Room.conflicts room
+    assert event1 in hd(conflicts).events
+    assert event2 in hd(conflicts).events
+  end
 
 end

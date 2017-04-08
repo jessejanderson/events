@@ -30,6 +30,10 @@ defmodule Events.Room do
   def events(room),    do: GenServer.call(room, :events)
   def name(room),      do: GenServer.call(room, :name)
 
+  def set_name(room, name) do
+    GenServer.call(room, {:set_name, name})
+  end
+
   def add_event(room, event, interval) when is_pid(event) do
     GenServer.call(room, {:add_event, event, interval})
   end
@@ -61,6 +65,11 @@ defmodule Events.Room do
   def _call(:terminate, _from, state) do
     RoomsList.remove_room(self())
     {:stop, :normal, state}
+  end
+
+  def handle_call({:set_name, name}, _from, state) do
+    new_state = %__MODULE__{state | name: name}
+    {:reply, :ok, new_state}
   end
 
   def handle_call({:add_event, event, interval}, _from, state) do
