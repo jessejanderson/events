@@ -1,132 +1,85 @@
 defmodule EventTest do
   use ExUnit.Case
-  alias Events.Event
+  alias Events.{Event, EventsList, Room, RoomsList}
+  alias Events.Event.Schedule
 
   doctest Event
 
-  @name "My Event"
+  @event_name "My First Event"
+  @room_name "Room 101"
+  @date1 {{2020, 1, 1}, {1, 0, 0}}
+  @date2 {{2020, 1, 1}, {2, 0, 0}}
+  @timezone "America/Los_Angeles"
 
-  # setup do
-  #   {:ok, event} = Event.start_link(@name)
-  #   {:ok, event: event}
-  # end
+  setup do
+    EventsList.start_link
+    RoomsList.start_link
+    {:ok, event} = Event.start_link(@event_name)
+    {:ok, event: event}
+  end
 
-  # test "Event returns name", state do
-  #   assert @name = Event.name(state[:event])
-  # end
+  test "Set interval for event", %{event: event} do
+    refute Event.interval(event).from
+    refute Event.interval(event).to
+    Event.set_interval event, @date1, @date2
+    dt1 = Calendar.DateTime.from_erl!(@date1, @timezone)
+    dt2 = Calendar.DateTime.from_erl!(@date2, @timezone)
+    assert ^dt1 = Event.interval(event).from
+    assert ^dt2 = Event.interval(event).to
+  end
 
-  # test "Change event name", state do
-  #   Event.set_name(state[:event], "New Event Name")
-  #   assert "New Event Name" = Event.name(state[:event])
-  # end
+  test "Set description for event", %{event: event} do
+    refute Event.description(event)
+    Event.set_description event, "Lorem ipsum"
+    assert "Lorem ipsum" = Event.description(event)
+  end
 
-  # test "Add event description", state do
-  #   Event.set_description(state[:event], "This is my event description.")
-  #   assert "This is my event description." = Event.description(state[:event])
-  # end
+  test "Set name for event", %{event: event} do
+    assert @event_name = Event.name(event)
+    Event.set_name event, "New Name"
+    assert "New Name" = Event.name(event)
+  end
 
-  # test "Add datetime_start", state do
-  #   event = state[:event]
-  #   assert %Calendar.DateTime.Interval{from: nil, to: nil} = Event.interval(event)
+  test "Add room to event", %{event: event} do
+    assert [] = Event.rooms(event)
+    {:ok, room} = Room.start_link(@room_name)
+    Event.add_room event, room
+    assert [^room] = Event.rooms(event)
+  end
 
-  #   {:ok, room} = Events.Room.start_link("101")
-  #   Event.add_room(event, room)
+  test "Remove room from event", %{event: event} do
+    assert {:ok, room} = Room.start_link(@room_name)
+    Event.add_room event, room
+    assert [^room] = Event.rooms(event)
+    Event.remove_room event, room
+    assert [] = Event.rooms(event)
+  end
 
-  #   Event.set_datetime_start(event, {{2020, 5, 30}, {20, 0, 0}})
-  #   datetime = Event.datetime_start(event)
+  test "Set daily schedule for event", %{event: event} do
+    assert :one_time = Event.schedule(event).type
+    schedule = %Schedule{type: :daily}
+    Event.set_schedule event, schedule
+    assert :daily = Event.schedule(event).type
+  end
 
-  #   assert 2020 = datetime.year
-  #   assert 5    = datetime.month
-  #   assert 30   = datetime.day
-  #   assert 20   = datetime.hour
-  #   assert 0    = datetime.minute
-  #   assert 0    = datetime.second
-  # end
-
-  # test "Add datetime_end", state do
-  #   event = state[:event]
-  #   refute Event.datetime_end(event)
-
-  #   Event.set_datetime_end(event, {{2020, 5, 30}, {21, 30, 0}})
-  #   datetime = Event.datetime_end(event)
-
-  #   assert 2020 = datetime.year
-  #   assert 5    = datetime.month
-  #   assert 30   = datetime.day
-  #   assert 21   = datetime.hour
-  #   assert 30   = datetime.minute
-  #   assert 0    = datetime.second
-  # end
-
-  # test "Add a room", state do
-  #   event = state[:event]
+  # test "Add same room twice to event", %{event: event} do
+  #   # Ensure Supervisor restarts event
   #   assert [] = Event.rooms(event)
-
-  #   {:ok, room} = Events.Room.start_link("Room 101")
-  #   Event.add_room(event, room)
+  #   {:ok, room} = Room.start_link(@room_name)
+  #   Event.add_room event, room
   #   assert [^room] = Event.rooms(event)
-
-  #   # Make sure the Room has the event too
-  #   assert [^event] = Events.Room.events(room)
-  # end
-
-  # test "Add the same room multiple times", state do
-  #   event = state[:event]
-  #   assert [] = Event.rooms(event)
-
-  #   {:ok, room} = Events.Room.start_link("Room 101")
-  #   Event.add_room(event, room)
+  #   Event.add_room event, room
   #   assert [^room] = Event.rooms(event)
-
-  #   Event.add_room(event, room)
-  #   assert [^room] = Event.rooms(event)
-
-  #   # Make sure the Room has just the single event
-  #   assert [^event] = Events.Room.events(room)
   # end
 
-  # test "Add multiple rooms", state do
-  #   event = state[:event]
-  #   assert [] = Event.rooms(event)
-
-  #   {:ok, room1} = Events.Room.start_link("Room 101")
-  #   {:ok, room2} = Events.Room.start_link("Room 202")
-  #   Event.add_rooms(event, [room1, room2])
-
-  #   assert Enum.member?(Event.rooms(event), room1)
-  #   assert Enum.member?(Event.rooms(event), room2)
-
-  #   {:ok, room3} = Events.Room.start_link("Unused Room")
-  #   refute Enum.member?(Event.rooms(event), room3)
-  # end
-
-  # test "Check for identical start/end time conflicts", state do
-  #   # TODO: create Events.Conflict to manage all this
-  #   event1 = state[:event]
-  #   {:ok, event2} = Event.start_link("My Second Event")
-
-  #   {:ok, room1} = Events.Room.start_link("Room 101")
-  #   {:ok, room2} = Events.Room.start_link("Room 202")
-  #   {:ok, room3} = Events.Room.start_link("Room 303")
-
-  #   # assert Event.conflicts(event1) = []
-  #   # assert Event.conflicts(event2) = []
-
-  #   Event.add_rooms(event1, [room1, room2])
-  #   Event.add_rooms(event2, [room1, room3])
-
-  #   assert Enum.member?(Event.rooms(event1), room1)
-  #   assert Enum.member?(Event.rooms(event1), room2)
-  #   assert Enum.member?(Event.rooms(event2), room1)
-  #   assert Enum.member?(Event.rooms(event2), room3)
-
-  #   # Event.set_datetime_start(event1, {{2017, 5, 30}, {13, 0, 0}})
-  #   # Event.set_datetime_end(event1, {{2017, 5, 30}, {15, 0, 0}})
-  #   # Event.set_datetime_start(event2, {{2017, 5, 30}, {13, 0, 0}})
-  #   # Event.set_datetime_end(event2, {{2017, 5, 30}, {15, 0, 0}})
-
-  #   # assert Event.conflicts(event1) = [event2]
-  #   # assert Event.conflicts(event2) = [event1]
-  # end
+  test "Add 2 rooms to event", %{event: event} do
+    assert [] = Event.rooms(event)
+    assert {:ok, room1} = Room.start_link(@room_name)
+    Event.add_room event, room1
+    assert [^room1] = Event.rooms(event)
+    assert {:ok, room2} = Room.start_link("Room 202")
+    Event.add_room event, room2
+    assert room2 in Event.rooms(event)
+  end
 
 end
