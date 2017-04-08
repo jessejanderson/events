@@ -33,7 +33,8 @@ defmodule Events.Event do
   def rooms(event),    do: GenServer.call(event, :rooms)
   def schedule(event), do: GenServer.call(event, :schedule)
 
-  def occurences(event, %CalDT.Interval{from: from, to: to}) do
+  def occurrences(event, %CalDT.Interval{} = interval) do
+    GenServer.call(event, {:occurrences, interval})
   end
 
   def set_interval(event, start_erl, end_erl) do
@@ -76,6 +77,20 @@ defmodule Events.Event do
   def handle_call(:interval, _from, state), do: {:reply, state.interval, state}
   def handle_call(:rooms, _from, state),    do: {:reply, state.rooms, state}
   def handle_call(:schedule, _from, state), do: {:reply, state.schedule, state}
+
+  def handle_call({:occurrences, interval}, _from, state) do
+    new_state =
+      state.interval.from
+      |> Schedule.first_occurrence_in_interval(state.schedule, interval)
+      |> occurrences_in_interval(state.schedule, interval)
+
+    {:reply, new_state, state}
+  end
+
+  def occurrences_in_interval(:not_in_interval, _schedule, _interval), do: []
+  def occurrences_in_interval(datetime, schedule, interval) do
+    Schedule.occurrences_in_interval(datetime, schedule, interval)
+  end
 
   def handle_call({:set_interval, start_erl, end_erl}, _from, state) do
     interval = Events.DateTime.create_interval(start_erl, end_erl, @timezone)

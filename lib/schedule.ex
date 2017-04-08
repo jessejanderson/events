@@ -69,6 +69,9 @@ defmodule Events.Event.Schedule do
   }
   """
 
+  alias Events.Event.Schedule
+  alias Calendar.DateTime, as: CalDT
+
   defstruct [
     :starts, # %DateTime{} to ensure timezone
     type: :one_time, # :daily, :weekly, :monthly
@@ -79,6 +82,60 @@ defmodule Events.Event.Schedule do
     weeks_of_month: [], # 1, 2, 3, 4, 5, :last
   ]
 
+  def first_occurrence_in_interval(
+    %DateTime{} = from, %Schedule{} = schedule, %CalDT.Interval{} = interval) do
+    after_or_same = CalDT.after?(from, interval.from)
+    first_occurrence_in_interval(from, schedule, interval, after_or_same)
+  end
+
+  def first_occurrence_in_interval(from, schedule, interval, true) do
+    case CalDT.Interval.includes?(interval, from) do
+      true ->  from
+      false -> :not_in_interval
+    end
+  end
+
+  def first_occurrence_in_interval(from, schedule, interval, false) do
+    from
+    |> advance(schedule)
+    |> first_occurrence_in_interval(schedule, interval)
+  end
+
+  def occurrences_in_interval(datetime, schedule, interval) do
+    occurrences_in_interval(datetime, schedule, interval, [datetime])
+  end
+
+  def occurrences_in_interval(datetime, schedule, interval, occurrences) do
+    new_datetime = datetime |> advance(schedule)
+    case before_or_same_time?(new_datetime, interval.to) do
+      true ->
+        occurrences = [new_datetime | occurrences]
+        occurrences_in_interval(new_datetime, schedule, interval, occurrences)
+      false -> occurrences
+    end
+  end
+
+  def after_or_same_time?(%DateTime{} = dt1, %DateTime{} = dt2) do
+    CalDT.after?(dt1, dt2) || CalDT.same_time?(dt1, dt2)
+  end
+
+  def before_or_same_time?(%DateTime{} = dt1, %DateTime{} = dt2) do
+    CalDT.before?(dt1, dt2) || CalDT.same_time?(dt1, dt2)
+  end
+
+  def advance(
+    %DateTime{} = datetime,
+    %Schedule{ends: :never, type: :daily} = schedule
+  ) do
+    Timex.shift(datetime, days: schedule.frequency)
+  end
+
+  # %Schedule{
+  #   ends: :never,
+  #   frequency: 1,
+  #   starts: %DateTime{},
+  #   type: :daily
+  # }
 
   # +---------------------------------------------------+
   # | "Recurring Events for Calendars" by Martin Fowler |

@@ -45,6 +45,6 @@ defmodule ScheduleTest do
 
     assert ^schedule = Event.schedule(event1)
 
-    assert 7 = Event.occurences(event1, %CalDT.Interval{} = interval)
+    assert 7 = Event.occurrences(event1, interval)
   end
 end
