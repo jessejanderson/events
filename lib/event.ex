@@ -28,9 +28,11 @@ defmodule Events.Event do
     GenServer.start_link(__MODULE__, name)
   end
 
-  def interval(event), do: GenServer.call(event, :interval)
-  def rooms(event),    do: GenServer.call(event, :rooms)
-  def schedule(event), do: GenServer.call(event, :schedule)
+  def description(event), do: GenServer.call(event, :description)
+  def interval(event),    do: GenServer.call(event, :interval)
+  def name(event),        do: GenServer.call(event, :name)
+  def rooms(event),       do: GenServer.call(event, :rooms)
+  def schedule(event),    do: GenServer.call(event, :schedule)
 
   def occurrences(event, %CalDT.Interval{} = interval) do
     GenServer.call(event, {:occurrences, interval})
@@ -40,8 +42,16 @@ defmodule Events.Event do
     GenServer.call(event, :next_occurrence)
   end
 
+  def set_description(event, description) do
+    GenServer.call(event, {:set_description, description})
+  end
+
   def set_interval(event, start_erl, end_erl) do
     GenServer.call(event, {:set_interval, start_erl, end_erl})
+  end
+
+  def set_name(event, name) do
+    GenServer.call(event, {:set_name, name})
   end
 
   def set_schedule(event, %Schedule{} = schedule) do
@@ -69,16 +79,18 @@ defmodule Events.Event do
     {:ok, %__MODULE__{name: name}}
   end
 
-  def handle_cast({:add_room, room}, state) do
-    {:ok, rooms} = Helpers.add_pid_if_unique(state.rooms, room)
-    Events.Room.add_event(room, self(), state.interval)
-    new_state = %__MODULE__{state | rooms: rooms}
-    {:noreply, new_state}
-  end
+  # def handle_cast({:add_room, room}, state) do
+  #   {:ok, rooms} = Helpers.add_pid_if_unique(state.rooms, room)
+  #   Events.Room.add_event(room, self(), state.interval)
+  #   new_state = %__MODULE__{state | rooms: rooms}
+  #   {:noreply, new_state}
+  # end
 
-  def handle_call(:interval, _from, state), do: {:reply, state.interval, state}
-  def handle_call(:rooms, _from, state),    do: {:reply, state.rooms, state}
-  def handle_call(:schedule, _from, state), do: {:reply, state.schedule, state}
+  def handle_call(:description, _from, st), do: {:reply, st.description, st}
+  def handle_call(:interval, _from, st),    do: {:reply, st.interval, st}
+  def handle_call(:name, _from, st),        do: {:reply, st.name, st}
+  def handle_call(:rooms, _from, st),       do: {:reply, st.rooms, st}
+  def handle_call(:schedule, _from, st),    do: {:reply, st.schedule, st}
 
   def handle_call({:occurrences, interval}, _from, state) do
     occurrences =
@@ -95,6 +107,16 @@ defmodule Events.Event do
       state.interval.from
       |> Schedule.first_occurrence_after_or_same_time(now, state.schedule)
     {:reply, next_occurrence, state}
+  end
+
+  def handle_call({:set_description, description}, _from, state) do
+    new_state = %__MODULE__{state | description: description}
+    {:reply, :ok, new_state}
+  end
+
+  def handle_call({:set_name, name}, _from, state) do
+    new_state = %__MODULE__{state | name: name}
+    {:reply, :ok, new_state}
   end
 
   def handle_call({:set_interval, start_erl, end_erl}, _from, state) do
