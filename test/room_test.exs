@@ -1,6 +1,6 @@
 defmodule RoomTest do
   use ExUnit.Case
-  alias Events.{Event, EventsList, Room, RoomsList}
+  alias Events.{Event, Room}
 
   doctest Room
 

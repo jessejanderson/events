@@ -3,7 +3,7 @@ defmodule EventsTest do
 
   doctest Events
 
-  alias Events.{Event, EventList, Room, RoomList}
+  alias Events.{Event, Room, RoomList}
 
   @event_name "My First Event"
   @room_name "Room 101"

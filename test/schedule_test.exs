@@ -1,6 +1,6 @@
 defmodule ScheduleTest do
   use ExUnit.Case
-  alias Events.{Event, EventList, Room, RoomList}
+  alias Events.{Event, Room}
   alias Events.Event.Schedule
   # alias Calendar.DateTime, as: CalDT
 
