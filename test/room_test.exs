@@ -11,9 +11,7 @@ defmodule RoomTest do
   # @timezone "America/Los_Angeles"
 
   setup do
-    EventsList.start_link
-    RoomsList.start_link
-    {:ok, room} = Room.start_link(@room_name)
+    {:ok, room} = Room.new(@room_name)
     {:ok, room: room}
   end
 
@@ -24,15 +22,15 @@ defmodule RoomTest do
   end
 
   test "Add room to event", %{room: room} do
-    {:ok, event} = Event.start_link(@event_name)
+    {:ok, event} = Event.new(@event_name)
     Event.set_interval event, @date1, @date2
     Event.add_room event, room
     assert [^event] = Room.events(room)
   end
 
   test "Create conflict for room", %{room: room} do
-    {:ok, event1} = Event.start_link("My First Event")
-    {:ok, event2} = Event.start_link("My Second Event")
+    {:ok, event1} = Event.new("My First Event")
+    {:ok, event2} = Event.new("My Second Event")
     Event.set_interval event1, @date1, @date2
     Event.set_interval event2, @date1, @date2
     Event.add_room event1, room

@@ -1,7 +1,7 @@
 defmodule Events.Room do
   @moduledoc false
 
-  alias Events.{Conflict, Event, Helpers, Room, RoomsList}
+  alias Events.{Conflict, Event, Helpers, Room, RoomList}
 
   use GenServer
 
@@ -15,6 +15,10 @@ defmodule Events.Room do
   # +-------+
   # | A P I |
   # +-------+
+
+  def new(name) do
+    RoomList.start_room(name)
+  end
 
   def start_link(name) do
     # IO.puts "===== Room: \"#{name}\" #{inspect self()} :: Starting"
@@ -47,14 +51,12 @@ defmodule Events.Room do
   # +-------------------+
 
   def init(name) do
-    # IO.puts "- - - Room: \"#{name}\" #{inspect self()} :: Initializing"
-    RoomsList.add_room(self())
     {:ok, %Room{name: name}}
   end
 
   def terminate(reason, state) do
     IO.puts "!!!!! Killing Room process: \"#{state.name}\", #{inspect self()}"
-    RoomsList.remove_room(self())
+    # RoomsList.remove_room(self())
     IO.puts "- - - Removed Room process \"#{state.name}\" from RoomsList"
   end
 

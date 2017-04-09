@@ -1,7 +1,7 @@
 defmodule Events.Event do
   @moduledoc false
 
-  alias Events.{Conflict, Event, EventsList, Helpers, Room}
+  alias Events.{Conflict, Event, EventList, Helpers, Room, RoomList}
   alias Events.Event.Schedule
   alias Calendar.DateTime.Interval
   alias Calendar.DateTime, as: CalDT
@@ -24,8 +24,17 @@ defmodule Events.Event do
   # | A P I |
   # +-------+
 
+  def new(name) do
+    EventList.start_event(name)
+  end
+
   def start_link(name) do
     GenServer.start_link(__MODULE__, name)
+  end
+
+  def stop(room, reason \\ :normal, timeout \\ :infinity) do
+    # reason can be {:shutdown, erl_term} to save state on death
+    GenServer.stop(room, reason, timeout)
   end
 
   def description(event), do: GenServer.call(event, :description)
@@ -75,8 +84,13 @@ defmodule Events.Event do
   # +-------------------+
 
   def init(name) do
-    EventsList.add_event(self())
     {:ok, %__MODULE__{name: name}}
+  end
+
+  def terminate(reason, state) do
+    # IO.puts "!!!!! Killing Event process: \"#{state.name}\", #{inspect self()}"
+    # EventsList.remove_event(self())
+    # IO.puts "- - - Removed Event process \"#{state.name}\" from EventsList"
   end
 
   # def handle_cast({:add_room, room}, state) do

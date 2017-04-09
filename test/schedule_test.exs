@@ -1,6 +1,6 @@
 defmodule ScheduleTest do
   use ExUnit.Case
-  alias Events.{Event, EventsList, Room, RoomsList}
+  alias Events.{Event, EventList, Room, RoomList}
   alias Events.Event.Schedule
   # alias Calendar.DateTime, as: CalDT
 
@@ -12,10 +12,10 @@ defmodule ScheduleTest do
   @date2 {{2020, 1, 1}, {2, 0, 0}}
 
   setup do
-    EventsList.start_link
-    RoomsList.start_link
-    {:ok, event1} = Event.start_link(@event_name)
-    {:ok, room1} = Room.start_link(@room_name)
+    # EventsList.start_link
+    # RoomsList.start_link
+    {:ok, event1} = Event.new(@event_name)
+    {:ok, room1} = Room.new(@room_name)
     {:ok, event1: event1, room1: room1}
   end
 
