@@ -1,7 +1,7 @@
 defmodule Events.Room do
   @moduledoc false
 
-  alias Events.{Conflict, Event, Helpers, Room, RoomList}
+  alias Events.{Conflict, Event, Helpers, RoomList}
 
   use GenServer
 
@@ -21,7 +21,6 @@ defmodule Events.Room do
   end
 
   def start_link(name) do
-    # IO.puts "===== Room: \"#{name}\" #{inspect self()} :: Starting"
     GenServer.start_link(__MODULE__, name)
   end
 
@@ -51,23 +50,17 @@ defmodule Events.Room do
   # +-------------------+
 
   def init(name) do
-    {:ok, %Room{name: name}}
+    {:ok, %__MODULE__{name: name}}
   end
 
   def terminate(reason, state) do
     IO.puts "!!!!! Killing Room process: \"#{state.name}\", #{inspect self()}"
-    # RoomsList.remove_room(self())
-    IO.puts "- - - Removed Room process \"#{state.name}\" from RoomsList"
+    IO.puts "! ! ! Reason: #{reason}"
   end
 
   def handle_call(:conflicts, _from, st), do: {:reply, st.conflicts, st}
   def handle_call(:events, _from, st),    do: {:reply, st.events, st}
   def handle_call(:name, _from, st),      do: {:reply, st.name, st}
-
-  def _call(:terminate, _from, state) do
-    RoomsList.remove_room(self())
-    {:stop, :normal, state}
-  end
 
   def handle_call({:set_name, name}, _from, state) do
     new_state = %__MODULE__{state | name: name}
@@ -75,21 +68,12 @@ defmodule Events.Room do
   end
 
   def handle_call({:add_event, event, interval}, _from, state) do
-    {:ok, events} = Helpers.add_pid_if_unique(state.events, event)
-
-    conflicts =
-      state.events
-      |> check_for_conflicts(interval)
-      |> Conflict.create_conflicts({event, interval}, self())
-      |> Enum.into(state.conflicts)
-
-    new_state = %__MODULE__{state | events: events, conflicts: conflicts}
+    new_state = do_add_event(state, event, interval)
     {:reply, {:ok, new_state}, new_state}
   end
 
   def handle_call({:remove_event, event}, _from, state) do
-    events = List.delete(state.events, event)
-    new_state = %__MODULE__{state | events: events}
+    new_state = do_remove_event(state, event)
     {:reply, {:ok, new_state}, new_state}
   end
 
@@ -97,13 +81,27 @@ defmodule Events.Room do
   # | P R I V A T E |
   # +---------------+
 
-  def check_for_conflicts([], _interval), do: []
-  def check_for_conflicts(events, interval) do
-    Enum.filter(events, &(Event.conflict?(&1, interval)))
+  defp do_add_event(state, event, interval) do
+    {:ok, events} = Helpers.add_pid_if_unique(state.events, event)
+    conflicts =
+      state.events
+      |> check_for_conflicts(interval)
+      |> Conflict.create_conflicts({event, interval}, self())
+      |> Enum.into(state.conflicts)
+    %__MODULE__{state | events: events, conflicts: conflicts}
   end
 
-  def add_pid_if_not_empty([], _pid),  do: []
-  def add_pid_if_not_empty(list, pid), do: [pid | list]
+  defp do_remove_event(state, event) do
+    events =
+      state.events
+      |> List.delete(event)
+    %__MODULE__{state | events: events}
+  end
+
+  defp check_for_conflicts([], _interval), do: []
+  defp check_for_conflicts(events, interval) do
+    Enum.filter(events, &(Event.conflict?(&1, interval)))
+  end
 
   # +-----------------------+
   # | C O N V E N I E N C E |

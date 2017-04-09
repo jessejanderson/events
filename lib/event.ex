@@ -1,7 +1,7 @@
 defmodule Events.Event do
   @moduledoc false
 
-  alias Events.{Conflict, Event, EventList, Helpers, Room, RoomList}
+  alias Events.{EventList, Helpers, Room}
   alias Events.Event.Schedule
   alias Calendar.DateTime.Interval
   alias Calendar.DateTime, as: CalDT
@@ -92,6 +92,7 @@ defmodule Events.Event do
 
   def terminate(reason, state) do
     IO.puts "!!!!! Killing Event process: \"#{state.name}\", #{inspect self()}"
+    IO.puts "! ! ! Reason: #{reason}"
   end
 
   def handle_call(:description, _from, st), do: {:reply, st.description, st}
