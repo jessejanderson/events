@@ -71,7 +71,7 @@ defmodule Events.Room do
 
   def handle_call({:set_name, name}, _from, state) do
     new_state = %__MODULE__{state | name: name}
-    {:reply, :ok, new_state}
+    {:reply, {:ok, new_state}, new_state}
   end
 
   def handle_call({:add_event, event, interval}, _from, state) do
@@ -84,13 +84,13 @@ defmodule Events.Room do
       |> Enum.into(state.conflicts)
 
     new_state = %__MODULE__{state | events: events, conflicts: conflicts}
-    {:reply, new_state, new_state}
+    {:reply, {:ok, new_state}, new_state}
   end
 
   def handle_call({:remove_event, event}, _from, state) do
     events = List.delete(state.events, event)
     new_state = %__MODULE__{state | events: events}
-    {:reply, :ok, new_state}
+    {:reply, {:ok, new_state}, new_state}
   end
 
   # +---------------+

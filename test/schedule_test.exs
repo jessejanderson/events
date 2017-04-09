@@ -46,7 +46,7 @@ defmodule ScheduleTest do
 
     assert ^schedule = Event.schedule(event1)
 
-    occurrences = Event.occurrences(event1, interval)
+    {:ok, occurrences} = Event.occurrences(event1, interval)
 
     assert 7 = Enum.count(occurrences)
   end
