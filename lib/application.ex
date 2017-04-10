@@ -9,7 +9,7 @@ defmodule Events.Application do
     import Supervisor.Spec, warn: false
 
     children = [
-      supervisor(Registry, [:unique, :org_process_registry]),
+      supervisor(Registry, [:unique, :process_registry]),
       supervisor(Events.OrgSupervisor, [])
     ]
 

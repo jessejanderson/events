@@ -29,7 +29,7 @@ defmodule Events.Org do
   end
 
   defp via_tuple(org_id) do
-    {:via, Registry, {:org_process_registry, org_id}}
+    {:via, Registry, {:process_registry, {:org, org_id}}}
   end
 
 end

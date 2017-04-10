@@ -10,9 +10,9 @@ defmodule Events.RoomList do
     Supervisor.start_link(__MODULE__, [], name: name)
   end
 
-  def start_room(org_id, room_name) do
+  def start_room(org_id, room_id, room_name) do
     name = via_tuple(org_id)
-    Supervisor.start_child(name, [room_name])
+    Supervisor.start_child(name, [org_id, room_id, room_name])
   end
 
   # def rooms do
@@ -30,7 +30,7 @@ defmodule Events.RoomList do
   end
 
   defp via_tuple(org_id) do
-    {:via, Registry, {:org_process_registry, {org_id, :room_list}}}
+    {:via, Registry, {:process_registry, {:room_list, org_id}}}
   end
 
   # def rooms do

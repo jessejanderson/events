@@ -20,10 +20,10 @@ defmodule Events do
     range = 1..orgs
     Enum.each(range, &Events.Org.new/1)
     1..events |> Enum.each(fn n ->
-      Enum.each(range, &(Events.Event.new(&1, "Event #{n}")))
+      Enum.each(range, &(Events.Event.new(&1, &1 + 1000, "Event #{n}")))
     end)
     1..rooms |> Enum.each(fn n ->
-      Enum.each(range, &(Events.Room.new(&1, "Room #{n}0#{n}")))
+      Enum.each(range, &(Events.Room.new(&1, &1 + 1000, "Room #{n}0#{n}")))
     end)
   end
 end

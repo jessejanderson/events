@@ -1,5 +1,3 @@
-# :observer.start
-
 # alias Events.{Conflict, Event, EventList, Room, RoomList}
 # alias Calendar.DateTime.Interval
 # alias Calendar.DateTime

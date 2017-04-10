@@ -28,6 +28,6 @@ defmodule Events.OrgSupervisor do
   end
 
   def via_tuple(org_id) do
-    {:via, Registry, {:org_process_registry, org_id}}
+    {:via, Registry, {:process_registry, org_id}}
   end
 end

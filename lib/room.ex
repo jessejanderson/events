@@ -7,6 +7,7 @@ defmodule Events.Room do
 
   @enforce_keys [:name]
   defstruct [
+    :id,
     :name,
     conflicts: [],
     events: [],
@@ -16,12 +17,14 @@ defmodule Events.Room do
   # | A P I |
   # +-------+
 
-  def new(org_id, name) do
-    RoomList.start_room(org_id, name)
+  # TODO: generate room_id automatically
+  def new(org_id, room_id, room_name) do
+    RoomList.start_room(org_id, room_id, room_name)
   end
 
-  def start_link(name) do
-    GenServer.start_link(__MODULE__, name)
+  def start_link(org_id, room_id, room_name) do
+    name = via_tuple(org_id, room_id)
+    GenServer.start_link(__MODULE__, {room_id, room_name}, name: name)
   end
 
   def stop(room, reason \\ :normal, timeout \\ :infinity) do
@@ -49,8 +52,8 @@ defmodule Events.Room do
   # | C A L L B A C K S |
   # +-------------------+
 
-  def init(name) do
-    {:ok, %__MODULE__{name: name}}
+  def init({id, name}) do
+    {:ok, %__MODULE__{id: id, name: name}}
   end
 
   def terminate(reason, state) do
@@ -101,6 +104,10 @@ defmodule Events.Room do
   defp check_for_conflicts([], _interval), do: []
   defp check_for_conflicts(events, interval) do
     Enum.filter(events, &(Event.conflict?(&1, interval)))
+  end
+
+  defp via_tuple(org_id, room_id) do
+    {:via, Registry, {:process_registry, {:room, org_id, room_id}}}
   end
 
   # +-----------------------+

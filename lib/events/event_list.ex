@@ -10,9 +10,9 @@ defmodule Events.EventList do
     Supervisor.start_link(__MODULE__, [], name: name)
   end
 
-  def start_event(org_id, event_name) do
+  def start_event(org_id, event_id, event_name) do
     name = via_tuple(org_id)
-    Supervisor.start_child(name, [event_name])
+    Supervisor.start_child(name, [org_id, event_id, event_name])
   end
 
   # def events do
@@ -30,7 +30,7 @@ defmodule Events.EventList do
   end
 
   defp via_tuple(org_id) do
-    {:via, Registry, {:org_process_registry, {org_id, :event_list}}}
+    {:via, Registry, {:process_registry, {:event_list, org_id}}}
   end
 
   # def events do
