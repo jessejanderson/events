@@ -24,17 +24,17 @@ defmodule Events.Event do
   # | A P I |
   # +-------+
 
-  def new(name) do
-    EventList.start_event(name)
+  def new(org_id, name) do
+    EventList.start_event(org_id, name)
   end
 
   def start_link(name) do
     GenServer.start_link(__MODULE__, name)
   end
 
-  def stop(room, reason \\ :normal, timeout \\ :infinity) do
+  def stop(event, reason \\ :normal, timeout \\ :infinity) do
     # reason can be {:shutdown, erl_term} to save state on death
-    GenServer.stop(room, reason, timeout)
+    GenServer.stop(event, reason, timeout)
   end
 
   def description(event), do: GenServer.call(event, :description)

@@ -16,8 +16,8 @@ defmodule Events.Room do
   # | A P I |
   # +-------+
 
-  def new(name) do
-    RoomList.start_room(name)
+  def new(org_id, name) do
+    RoomList.start_room(org_id, name)
   end
 
   def start_link(name) do
