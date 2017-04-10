@@ -34,8 +34,4 @@ defmodule Events.RoomList do
     {:via, Registry, {:process_registry, {:room_list, org_id}}}
   end
 
-  # def rooms do
-  #   GenServer.call(@name, :rooms)
-  # end
-
 end

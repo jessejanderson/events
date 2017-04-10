@@ -34,8 +34,4 @@ defmodule Events.EventList do
     {:via, Registry, {:process_registry, {:event_list, org_id}}}
   end
 
-  # def events do
-  #   GenServer.call(@name, :events)
-  # end
-
 end
