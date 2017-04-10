@@ -1,6 +1,6 @@
 defmodule ScheduleTest do
   use ExUnit.Case
-  alias Events.{Event, Room}
+  alias Events.{Event, Org, Room}
   alias Events.Event.Schedule
   # alias Calendar.DateTime, as: CalDT
 
@@ -12,17 +12,22 @@ defmodule ScheduleTest do
   @date2 {{2020, 1, 1}, {2, 0, 0}}
 
   setup do
-    # EventsList.start_link
-    # RoomsList.start_link
-    {:ok, event1} = Event.new(@event_name)
-    {:ok, room1} = Room.new(@room_name)
-    {:ok, event1: event1, room1: room1}
+    org_id = Enum.random(1..9999)
+    room_id = Enum.random(1..9999)
+    event_id = Enum.random(1..9999)
+
+    {:ok, _org} = Org.new(org_id)
+    {:ok, room} = Room.new(org_id, room_id, @room_name)
+    {:ok, room: room, org_id: org_id, room_id: room_id}
+    {:ok, event} = Event.new(org_id, event_id, @event_name)
+
+    {:ok, event: event, room: room, org_id: org_id}
   end
 
-  test "Make a daily event", %{event1: event1} do
-    Event.set_interval(event1, @date1, @date2)
+  test "Make a daily event", %{event: event} do
+    Event.set_interval(event, @date1, @date2)
     Event.set_schedule(
-      event1,
+      event,
       %Schedule{
         type: :daily,
       }
@@ -44,9 +49,9 @@ defmodule ScheduleTest do
         "America/Los_Angeles"
       )
 
-    assert ^schedule = Event.schedule(event1)
+    assert ^schedule = Event.schedule(event)
 
-    {:ok, occurrences} = Event.occurrences(event1, interval)
+    {:ok, occurrences} = Event.occurrences(event, interval)
 
     assert 7 = Enum.count(occurrences)
   end

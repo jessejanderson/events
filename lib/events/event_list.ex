@@ -15,11 +15,12 @@ defmodule Events.EventList do
     Supervisor.start_child(name, [org_id, event_id, event_name])
   end
 
-  # def events do
-  #   @name
-  #   |> Supervisor.which_children
-  #   |> Enum.map(&(elem(&1, 1)))
-  # end
+  def events(org_id) do
+    org_id
+    |> via_tuple
+    |> Supervisor.which_children
+    |> Enum.map(&(elem(&1, 1)))
+  end
 
   def init(_opts) do
     children = [

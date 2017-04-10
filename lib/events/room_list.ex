@@ -15,11 +15,12 @@ defmodule Events.RoomList do
     Supervisor.start_child(name, [org_id, room_id, room_name])
   end
 
-  # def rooms do
-  #   @name
-  #   |> Supervisor.which_children
-  #   |> Enum.map(&(elem(&1, 1)))
-  # end
+  def rooms(org_id) do
+    org_id
+    |> via_tuple
+    |> Supervisor.which_children
+    |> Enum.map(&(elem(&1, 1)))
+  end
 
   def init(_opts) do
     children = [

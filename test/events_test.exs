@@ -3,7 +3,7 @@ defmodule EventsTest do
 
   doctest Events
 
-  alias Events.{Event, Room, RoomList}
+  alias Events.{Event, Org, Room, RoomList}
 
   @event_name "My First Event"
   @room_name "Room 101"
@@ -15,51 +15,56 @@ defmodule EventsTest do
   # @date6 {{2020, 1, 1}, {6, 0, 0}}
 
   setup do
-    {:ok, event1} = Event.new(@event_name)
-    {:ok, room1} = Room.new(@room_name)
-    {:ok, event1: event1, room1: room1}
+    org_id = Enum.random(1..9999)
+    room_id = Enum.random(1..9999)
+    event_id = Enum.random(1..9999)
+
+    {:ok, _org} = Org.new(org_id)
+    {:ok, event} = Event.new(org_id, event_id, @event_name)
+    {:ok, room} = Room.new(org_id, room_id, @room_name)
+    {:ok, event: event, room: room, org_id: org_id}
   end
 
-  test "Add a room to an event", %{event1: event1, room1: room1} do
-    Event.set_interval(event1, @date1, @date2)
-    Event.add_room(event1, room1)
+  test "Add a room to an event", %{event: event, room: room, org_id: org_id} do
+    Event.set_interval(event, @date1, @date2)
+    Event.add_room(event, room)
 
-    assert event1 in Room.events(room1)
+    assert event in Room.events(room)
 
-    assert room1 in RoomList.rooms
-    assert room1 in Event.rooms(event1)
+    assert room in RoomList.rooms(org_id)
+    assert room in Event.rooms(event)
   end
 
   test "Add a room to 2 events and create a conflict",
-  %{event1: event1, room1: room1} do
-    {:ok, event2} = Event.new("My Second Event")
-    Event.set_interval(event1, @date1, @date3)
+  %{event: event, room: room, org_id: org_id} do
+    {:ok, event2} = Event.new(org_id, 10_001, "My Second Event")
+    Event.set_interval(event, @date1, @date3)
     Event.set_interval(event2, @date2, @date4)
 
-    Event.add_room(event1, room1)
-    Event.add_room(event2, room1)
+    Event.add_room(event, room)
+    Event.add_room(event2, room)
 
     conflict_events =
-      room1 |> Room.conflicts |> hd |> Map.get(:events)
+      room |> Room.conflicts |> hd |> Map.get(:events)
 
-    assert event1 in conflict_events
+    assert event in conflict_events
     assert event2 in conflict_events
   end
 
 
   test "generate 20 events and add the same room to create conflicts",
-  %{event1: event1, room1: room1} do
-    Event.set_interval(event1, @date1, @date4)
-    Event.add_room(event1, room1)
+  %{event: event, room: room, org_id: org_id} do
+    Event.set_interval(event, @date1, @date4)
+    Event.add_room(event, room)
 
     1..20
     |> Enum.each(fn x ->
-      {:ok, event} = Event.new("Event #{x}")
-      Event.set_interval(event, @date1, @date4)
-      Event.add_room(event, room1)
+      {:ok, new_event} = Event.new(org_id, 10_000 + x, "Event #{x}")
+      Event.set_interval(new_event, @date1, @date4)
+      Event.add_room(new_event, room)
     end)
 
-    room_conflicts = room1 |> Room.conflicts |> Enum.count
+    room_conflicts = room |> Room.conflicts |> Enum.count
     assert room_conflicts == 210
   end
 end

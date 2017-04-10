@@ -1,6 +1,6 @@
 defmodule EventTest do
   use ExUnit.Case
-  alias Events.{Event, Room}
+  alias Events.{Event, Org, Room}
   alias Events.Event.Schedule
 
   doctest Event
@@ -12,8 +12,12 @@ defmodule EventTest do
   @timezone "America/Los_Angeles"
 
   setup do
-    {:ok, event} = Event.new(@event_name)
-    {:ok, event: event}
+    org_id = Enum.random(1..9999)
+    event_id = Enum.random(1..9999)
+
+    {:ok, org} = Org.new(org_id)
+    {:ok, event} = Event.new(org_id, event_id, @event_name)
+    {:ok, event: event, org_id: org_id, event_id: event_id}
   end
 
   test "Set interval for event", %{event: event} do
@@ -38,15 +42,15 @@ defmodule EventTest do
     assert "New Name" = Event.name(event)
   end
 
-  test "Add room to event", %{event: event} do
+  test "Add room to event", %{event: event, org_id: org_id} do
     assert [] = Event.rooms(event)
-    {:ok, room} = Room.new(@room_name)
+    {:ok, room} = Room.new(org_id, 1, @room_name)
     Event.add_room event, room
     assert [^room] = Event.rooms(event)
   end
 
-  test "Remove room from event", %{event: event} do
-    assert {:ok, room} = Room.new(@room_name)
+  test "Remove room from event", %{event: event, org_id: org_id} do
+    assert {:ok, room} = Room.new(org_id, 1, @room_name)
     Event.add_room event, room
     assert [^room] = Event.rooms(event)
     Event.remove_room event, room
@@ -60,22 +64,22 @@ defmodule EventTest do
     assert :daily = Event.schedule(event).type
   end
 
-  # test "Add same room twice to event", %{event: event} do
+  # test "Add same room twice to event", %{event: event, org_id: org_id} do
   #   # Ensure Supervisor restarts event
   #   assert [] = Event.rooms(event)
-  #   {:ok, room} = Room.start_link(@room_name)
+  #   {:ok, room} = Room.new(org_id, 1, @room_name)
   #   Event.add_room event, room
   #   assert [^room] = Event.rooms(event)
   #   Event.add_room event, room
   #   assert [^room] = Event.rooms(event)
   # end
 
-  test "Add 2 rooms to event", %{event: event} do
+  test "Add 2 rooms to event", %{event: event, org_id: org_id} do
     assert [] = Event.rooms(event)
-    assert {:ok, room1} = Room.new(@room_name)
+    assert {:ok, room1} = Room.new(org_id, 1, @room_name)
     Event.add_room event, room1
     assert [^room1] = Event.rooms(event)
-    assert {:ok, room2} = Room.new("Room 202")
+    assert {:ok, room2} = Room.new(org_id, 2, "Room 202")
     Event.add_room event, room2
     assert room2 in Event.rooms(event)
   end

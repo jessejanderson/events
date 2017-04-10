@@ -1,6 +1,6 @@
 defmodule RoomTest do
   use ExUnit.Case
-  alias Events.{Event, Room}
+  alias Events.{Event, Org, Room}
 
   doctest Room
 
@@ -11,26 +11,30 @@ defmodule RoomTest do
   # @timezone "America/Los_Angeles"
 
   setup do
-    {:ok, room} = Room.new(@room_name)
-    {:ok, room: room}
+    org_id = Enum.random(1..9999)
+    room_id = Enum.random(1..9999)
+
+    {:ok, org} = Org.new(org_id)
+    {:ok, room} = Room.new(org_id, room_id, @room_name)
+    {:ok, room: room, org_id: org_id, room_id: room_id}
   end
 
-  test "Set name for room", %{room: room} do
+  test "Set name for room", %{room: room, org_id: org_id} do
     assert @room_name = Room.name(room)
     Room.set_name room, "New Name"
     assert "New Name" = Room.name(room)
   end
 
-  test "Add room to event", %{room: room} do
-    {:ok, event} = Event.new(@event_name)
+  test "Add room to event", %{room: room, org_id: org_id} do
+    {:ok, event} = Event.new(org_id, 1, @event_name)
     Event.set_interval event, @date1, @date2
     Event.add_room event, room
     assert [^event] = Room.events(room)
   end
 
-  test "Create conflict for room", %{room: room} do
-    {:ok, event1} = Event.new("My First Event")
-    {:ok, event2} = Event.new("My Second Event")
+  test "Create conflict for room", %{room: room, org_id: org_id} do
+    {:ok, event1} = Event.new(org_id, 1, "My First Event")
+    {:ok, event2} = Event.new(org_id, 2, "My Second Event")
     Event.set_interval event1, @date1, @date2
     Event.set_interval event2, @date1, @date2
     Event.add_room event1, room
