@@ -65,6 +65,8 @@ defmodule Events.Event.Schedule do
   alias Events.Event.Schedule
   alias Calendar.DateTime, as: CalDT
 
+  @days_of_week [:monday, :tuesday, :wednesday, :thursday, :friday, :saturday, :sunday]
+
   defstruct [
     type: :one_time, # :daily, :weekly, :monthly
     days_of_week: [], # :sunday, :monday, ..., :saturday
@@ -144,8 +146,32 @@ defmodule Events.Event.Schedule do
 
   def advance(
     %DateTime{} = datetime,
-    %Schedule{ends: :never, type: :weekly} = schedule
+    %Schedule{
+      ends: :never,
+      type: :weekly,
+      days_of_week: [one_day]
+    } = schedule
   ) do
+    Timex.shift(datetime, weeks: schedule.frequency)
+  end
+
+  def advance(
+    %DateTime{} = datetime,
+    %Schedule{
+      ends: :never,
+      type: :weekly,
+      days_of_week: days
+    } = schedule
+  ) do
+    day_of_week =
+      datetime
+      |> Date.day_of_week
+
+    days
+    |> Enum.each(fn day ->
+
+    end)
+    IO.inspect days
     Timex.shift(datetime, weeks: schedule.frequency)
   end
 
@@ -161,6 +187,36 @@ defmodule Events.Event.Schedule do
     %Schedule{ends: :never, type: :one_time} = schedule
   ) do
     :end_of_schedule
+  end
+
+  def weekday(n) when is_number(n) do
+    Enum.at(@days_of_week, n - 1)
+  end
+
+  # - find next occurence
+  # - find out weekday of next occurrence
+  # - sort weekdays in schedule
+  # - drop hd of weekdays in schedule && weekdays in interval
+
+  # days_of_week: [1, 3, 5] , interval: [2, 2, 3]
+  # next_occurrence == Friday
+  # days_of_week: [3, 5, 1] , interval [2, 3, 2]
+  # days_of_week: [5, 1, 3] , interval [3, 2, 2]
+
+
+  def shift_by_intervals({datetime, [hd | rest]}) do
+    new_datetime = Timex.shift(datetime, days: hd)
+    {new_datetime, rest ++ [hd]}
+  end
+
+  def find_weekday_intervals(list) when is_list(list) do
+    list
+    |> Enum.reverse
+    |> Enum.map_reduce([8], fn(x, acc) ->
+      {hd(acc) - x, [x]}
+    end)
+    |> elem(0)
+    |> Enum.reverse
   end
 
   # +---------------------------------------------------+
