@@ -144,6 +144,20 @@ defmodule Events.Event.Schedule do
 
   def advance(
     %DateTime{} = datetime,
+    %Schedule{ends: :never, type: :weekly} = schedule
+  ) do
+    Timex.shift(datetime, weeks: schedule.frequency)
+  end
+
+  def advance(
+    %DateTime{} = datetime,
+    %Schedule{ends: :never, type: :monthly} = schedule
+  ) do
+    Timex.shift(datetime, months: schedule.frequency)
+  end
+
+  def advance(
+    %DateTime{} = datetime,
     %Schedule{ends: :never, type: :one_time} = schedule
   ) do
     :end_of_schedule

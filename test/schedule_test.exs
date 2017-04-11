@@ -26,12 +26,7 @@ defmodule ScheduleTest do
 
   test "Make a daily event", %{event: event} do
     Event.set_interval(event, @date1, @date2)
-    Event.set_schedule(
-      event,
-      %Schedule{
-        type: :daily,
-      }
-    )
+    Event.set_schedule(event, %Schedule{type: :daily})
 
     schedule = %Schedule{
       days_of_week: [],
@@ -49,10 +44,75 @@ defmodule ScheduleTest do
         "America/Los_Angeles"
       )
 
-    assert ^schedule = Event.schedule(event)
+    assert schedule == Event.schedule(event)
 
     {:ok, occurrences} = Event.occurrences(event, interval)
 
-    assert 7 = Enum.count(occurrences)
+    assert 7 == Enum.count(occurrences)
+  end
+
+  test "Make a weekly event", %{event: event} do
+    Event.set_interval(event, @date1, @date2)
+    Event.set_schedule(
+      event,
+      %Schedule{
+        type: :weekly,
+        days_of_week: [:monday]
+      })
+
+    schedule = %Schedule{
+      days_of_week: [:monday],
+      days_of_month: [],
+      ends: :never,
+      frequency: 1,
+      type: :weekly,
+      weeks_of_month: [],
+    }
+
+    interval =
+      Events.DateTime.create_interval(
+        @date1,
+        {{2020, 1, 30}, {1, 0, 0}},
+        "America/Los_Angeles"
+      )
+
+    assert schedule == Event.schedule(event)
+
+    {:ok, occurrences} = Event.occurrences(event, interval)
+
+    assert 5 == Enum.count(occurrences)
+  end
+
+  test "Make a monthly event", %{event: event} do
+    Event.set_interval(event, @date1, @date2)
+    Event.set_schedule(
+      event,
+      %Schedule{
+        type: :monthly,
+        days_of_week: [:monday],
+        weeks_of_month: [1]
+      })
+
+    schedule = %Schedule{
+      days_of_week: [:monday],
+      days_of_month: [],
+      ends: :never,
+      frequency: 1,
+      type: :monthly,
+      weeks_of_month: [1],
+    }
+
+    interval =
+      Events.DateTime.create_interval(
+        @date1,
+        {{2020, 6, 1}, {1, 0, 0}},
+        "America/Los_Angeles"
+      )
+
+    assert schedule == Event.schedule(event)
+
+    {:ok, occurrences} = Event.occurrences(event, interval)
+
+    assert 6 == Enum.count(occurrences)
   end
 end
