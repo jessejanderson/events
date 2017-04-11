@@ -168,15 +168,13 @@ defmodule Events.Event do
   end
 
   def do_next_occurrence(from_date, rules) do
-    try do
-      from_date
-      |> RecurringEvents.unfold(rules)
-      |> Enum.find(fn(date) ->
-        CalDT.after?(date, CalDT.now!(@timezone))
-      end)
-    rescue
-      msg in ArgumentError -> msg
-    end
+    from_date
+    |> RecurringEvents.unfold(rules)
+    |> Enum.find(fn(date) ->
+      CalDT.after?(date, CalDT.now!(@timezone))
+    end)
+  rescue
+    msg in ArgumentError -> msg
   end
 
   defp do_set_interval(state, start_erl, end_erl, timezone) do
