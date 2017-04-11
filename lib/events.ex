@@ -3,19 +3,6 @@ defmodule Events do
   Documentation for Events.
   """
 
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Events.hello
-      :world
-
-  """
-  def hello do
-    :world
-  end
-
   def test(orgs, events, rooms) do
     date1 = {{2020, 1, 1}, {1, 0, 0}}
     date2 = {{2020, 1, 1}, {2, 0, 0}}
