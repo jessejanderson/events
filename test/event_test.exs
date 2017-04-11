@@ -1,7 +1,6 @@
 defmodule EventTest do
   use ExUnit.Case
   alias Events.{Event, Org, Room}
-  alias Events.Event.Schedule
 
   doctest Event
 
@@ -33,35 +32,40 @@ defmodule EventTest do
   test "Set description for event", %{event: event} do
     refute Event.description(event)
     Event.set_description event, "Lorem ipsum"
-    assert "Lorem ipsum" = Event.description(event)
+    assert "Lorem ipsum" == Event.description(event)
   end
 
   test "Set name for event", %{event: event} do
-    assert @event_name = Event.name(event)
+    assert @event_name == Event.name(event)
     Event.set_name event, "New Name"
-    assert "New Name" = Event.name(event)
+    assert "New Name" == Event.name(event)
   end
 
   test "Add room to event", %{event: event, org_id: org_id} do
-    assert [] = Event.rooms(event)
+    assert [] == Event.rooms(event)
     {:ok, room} = Room.new(org_id, 1, @room_name)
     Event.add_room event, room
-    assert [^room] = Event.rooms(event)
+    assert [room] == Event.rooms(event)
   end
 
   test "Remove room from event", %{event: event, org_id: org_id} do
     assert {:ok, room} = Room.new(org_id, 1, @room_name)
     Event.add_room event, room
-    assert [^room] = Event.rooms(event)
+    assert [room] == Event.rooms(event)
     Event.remove_room event, room
-    assert [] = Event.rooms(event)
+    assert [] == Event.rooms(event)
   end
 
-  test "Set daily schedule for event", %{event: event} do
-    assert :one_time = Event.schedule(event).type
-    schedule = %Schedule{type: :daily}
-    Event.set_schedule event, schedule
-    assert :daily = Event.schedule(event).type
+  test "Set every-day rules for event", %{event: event} do
+    rules = %{freq: :daily}
+    Event.set_recurrence event, rules
+    assert rules == Event.recurrence(event)
+  end
+
+  test "Set every-other-day rules as a list for event", %{event: event} do
+    rules = %{freq: :daily, interval: 2}
+    Event.set_recurrence(event, freq: :daily, interval: 2)
+    assert rules == Event.recurrence(event)
   end
 
   # test "Add same room twice to event", %{event: event, org_id: org_id} do
@@ -75,10 +79,10 @@ defmodule EventTest do
   # end
 
   test "Add 2 rooms to event", %{event: event, org_id: org_id} do
-    assert [] = Event.rooms(event)
+    assert [] == Event.rooms(event)
     assert {:ok, room1} = Room.new(org_id, 1, @room_name)
     Event.add_room event, room1
-    assert [^room1] = Event.rooms(event)
+    assert [room1] == Event.rooms(event)
     assert {:ok, room2} = Room.new(org_id, 2, "Room 202")
     Event.add_room event, room2
     assert room2 in Event.rooms(event)

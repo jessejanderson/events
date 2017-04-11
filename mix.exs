@@ -15,7 +15,7 @@ defmodule Events.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     # Specify extra applications you'll use from Erlang/Elixir
-    [extra_applications: [:logger, :calendar, :timex],
+    [extra_applications: [:logger, :calendar],
      mod: {Events.Application, []}]
   end
 
@@ -34,7 +34,7 @@ defmodule Events.Mixfile do
       {:credo, "~> 0.7", only: [:dev, :test]},
       {:dogma, "~> 0.1", only: :dev},
       {:mix_test_watch, "~> 0.3", only: :dev, runtime: false},
-      {:timex, "~> 3.0"},
+      {:recurring_events, "~> 0.1.0"},
     ]
   end
 end

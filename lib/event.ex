@@ -2,7 +2,6 @@ defmodule Events.Event do
   @moduledoc false
 
   alias Events.{EventList, Helpers, Room}
-  alias Events.Event.Schedule
   alias Calendar.DateTime.Interval
   alias Calendar.DateTime, as: CalDT
 
@@ -10,12 +9,12 @@ defmodule Events.Event do
 
   @enforce_keys [:name]
   defstruct [
-    :id,
-    :description,
-    :name,
+    description: nil,
+    id: nil,
     interval: %Calendar.DateTime.Interval{},
+    name: nil,
     rooms: [],
-    schedule: %Schedule{},
+    recurrence: nil,
   ]
 
   # TODO: get dynamic tz from org or local
@@ -44,7 +43,7 @@ defmodule Events.Event do
   def interval(event),    do: GenServer.call(event, :interval)
   def name(event),        do: GenServer.call(event, :name)
   def rooms(event),       do: GenServer.call(event, :rooms)
-  def schedule(event),    do: GenServer.call(event, :schedule)
+  def recurrence(event),  do: GenServer.call(event, :recurrence)
 
   def occurrences(event, %CalDT.Interval{} = interval) when is_pid(event) do
     GenServer.call(event, {:occurrences, interval})
@@ -69,8 +68,8 @@ defmodule Events.Event do
     GenServer.call(event, {:set_name, name})
   end
 
-  def set_schedule(event, %Schedule{} = schedule) when is_pid(event) do
-    GenServer.call(event, {:set_schedule, schedule})
+  def set_recurrence(event, rules) when is_pid(event) do
+    GenServer.call(event, {:set_recurrence, rules})
   end
 
   def add_room(event, room) when is_pid(room) when is_pid(event) do
@@ -102,7 +101,7 @@ defmodule Events.Event do
   def handle_call(:interval, _from, st),    do: {:reply, st.interval, st}
   def handle_call(:name, _from, st),        do: {:reply, st.name, st}
   def handle_call(:rooms, _from, st),       do: {:reply, st.rooms, st}
-  def handle_call(:schedule, _from, st),    do: {:reply, st.schedule, st}
+  def handle_call(:recurrence, _from, st),  do: {:reply, st.recurrence, st}
 
   def handle_call({:occurrences, interval}, _from, state) do
     occurrences = do_occurrences(state, interval)
@@ -110,8 +109,8 @@ defmodule Events.Event do
   end
 
   def handle_call(:next_occurrence, _from, state) do
-    next_occurrence = do_next_occurrence(state, CalDT.now!(@timezone))
-    {:reply, {:ok, next_occurrence}, state}
+    datetime = do_next_occurrence(state.interval.from, state.recurrence)
+    {:reply, {:ok, datetime}, state}
   end
 
   def handle_call({:set_description, description}, _from, state) do
@@ -129,8 +128,8 @@ defmodule Events.Event do
     {:reply, {:ok, new_state}, new_state}
   end
 
-  def handle_call({:set_schedule, schedule}, _from, state) do
-    new_state = %__MODULE__{state | schedule: schedule}
+  def handle_call({:set_recurrence, rules}, _from, state) do
+    new_state = do_set_recurrence(state, rules)
     {:reply, {:ok, new_state}, new_state}
   end
 
@@ -155,18 +154,43 @@ defmodule Events.Event do
 
   defp do_occurrences(state, interval) do
     state.interval.from
-    |> Schedule.first_occurrence_in_interval(state.schedule, interval)
-    |> occurrences_in_interval(state.schedule, interval)
+    |> RecurringEvents.unfold(state.recurrence)
+    |> Stream.filter(&(same_or_after?(&1, interval.from)))
+    |> Enum.take_while(&(same_or_before?(&1, interval.to)))
   end
 
-  defp do_next_occurrence(state, now) do
-    state.interval.from
-    |> Schedule.first_occurrence_after_or_same_time(now, state.schedule)
+  defp same_or_after?(%DateTime{} = dt1, %DateTime{} = dt2) do
+    CalDT.after?(dt1, dt2) || CalDT.same_time?(dt1, dt2)
+  end
+
+  defp same_or_before?(%DateTime{} = dt1, %DateTime{} = dt2) do
+    CalDT.before?(dt1, dt2) || CalDT.same_time?(dt1, dt2)
+  end
+
+  def do_next_occurrence(from_date, rules) do
+    try do
+      from_date
+      |> RecurringEvents.unfold(rules)
+      |> Enum.find(fn(date) ->
+        CalDT.after?(date, CalDT.now!(@timezone))
+      end)
+    rescue
+      msg in ArgumentError -> msg
+    end
   end
 
   defp do_set_interval(state, start_erl, end_erl, timezone) do
     interval = Events.DateTime.create_interval(start_erl, end_erl, timezone)
     %__MODULE__{state | interval: interval}
+  end
+
+  def do_set_recurrence(state, rules) when is_list(rules) do
+    rules = rules |> Enum.into(%{})
+    do_set_recurrence(state, rules)
+  end
+
+  def do_set_recurrence(state, rules) do
+    %__MODULE__{state | recurrence: rules}
   end
 
   defp do_add_room(state, room) do
@@ -184,11 +208,6 @@ defmodule Events.Event do
   defp do_conflict(state, interval) do
     [state.interval.from, state.interval.to]
     |> Enum.any?(&(Interval.includes?(interval, &1)))
-  end
-
-  defp occurrences_in_interval(:not_in_interval, _schedule, _interval), do: []
-  defp occurrences_in_interval(datetime, schedule, interval) do
-    Schedule.occurrences_in_interval(datetime, schedule, interval)
   end
 
   defp via_tuple(org_id, event_id) do
