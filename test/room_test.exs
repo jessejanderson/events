@@ -14,12 +14,12 @@ defmodule RoomTest do
     org_id = Enum.random(1..9999)
     room_id = Enum.random(1..9999)
 
-    {:ok, org} = Org.new(org_id)
+    {:ok, _org} = Org.new(org_id)
     {:ok, room} = Room.new(org_id, room_id, @room_name)
     {:ok, room: room, org_id: org_id, room_id: room_id}
   end
 
-  test "Set name for room", %{room: room, org_id: org_id} do
+  test "Set name for room", %{room: room} do
     assert @room_name = Room.name(room)
     Room.set_name room, "New Name"
     assert "New Name" = Room.name(room)

@@ -14,7 +14,7 @@ defmodule EventTest do
     org_id = Enum.random(1..9999)
     event_id = Enum.random(1..9999)
 
-    {:ok, org} = Org.new(org_id)
+    {:ok, _org} = Org.new(org_id)
     {:ok, event} = Event.new(org_id, event_id, @event_name)
     {:ok, event: event, org_id: org_id, event_id: event_id}
   end

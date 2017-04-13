@@ -1,9 +1,8 @@
 defmodule RecurrenceTest do
   use ExUnit.Case
-  alias Events.{Event, Org, Room}
+  alias Events.{Event, Org}
 
   @event_name "My First Event"
-  @room_name "Room 101"
   @date1 {{2018, 1, 1}, {1, 0, 0}}
   @date2 {{2018, 1, 1}, {2, 0, 0}}
   @date_1_1_18 {{2018, 1, 1}, {1, 0, 0}}
@@ -16,7 +15,7 @@ defmodule RecurrenceTest do
     org_id = Enum.random(1..9999)
     event_id = Enum.random(1..9999)
 
-    {:ok, org} = Org.new(org_id)
+    {:ok, _org} = Org.new(org_id)
     {:ok, event} = Event.new(org_id, event_id, @event_name)
 
     Event.set_interval(event, @date1, @date2)
