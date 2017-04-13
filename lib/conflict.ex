@@ -28,4 +28,17 @@ defmodule Events.Conflict do
     Enum.map(conflicts, &(create_conflict(&1, {event, interval}, room)))
   end
 
+  def intervals_overlap?(int, int), do: true
+  def intervals_overlap?(int1, int2) do
+    before_or_same?(int1.from, int2.to)
+    &&
+    after_or_same?(int1.to, int2.from)
+  end
+
+  def after_or_same?(time, time), do: true
+  def after_or_same?(tm1, tm2), do: :gt == Time.compare(tm1, tm2)
+
+  def before_or_same?(time, time), do: true
+  def before_or_same?(tm1, tm2), do: :lt == Time.compare(tm1, tm2)
+
 end
