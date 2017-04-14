@@ -86,12 +86,13 @@ defmodule Events.Room do
 
   defp do_add_event(state, event, interval) do
     {:ok, events} = Helpers.add_pid_if_unique(state.events, event)
-    conflicts =
-      state.events
-      |> check_for_conflicts(interval)
-      |> Conflict.create_conflicts({event, interval}, self())
-      |> Enum.into(state.conflicts)
-    %__MODULE__{state | events: events, conflicts: conflicts}
+    # conflicts =
+    #   state.events
+    #   |> check_for_conflicts(interval)
+    #   |> Conflict.create_conflicts({event, interval}, self())
+    #   |> Enum.into(state.conflicts)
+    # %__MODULE__{state | events: events, conflicts: conflicts}
+    %__MODULE__{state | events: events}
   end
 
   defp do_remove_event(state, event) do
@@ -101,10 +102,10 @@ defmodule Events.Room do
     %__MODULE__{state | events: events}
   end
 
-  defp check_for_conflicts([], _interval), do: []
-  defp check_for_conflicts(events, interval) do
-    Enum.filter(events, &(Event.conflict?(&1, interval)))
-  end
+  # defp check_for_conflicts([], _interval), do: []
+  # defp check_for_conflicts(events, interval) do
+  #   Enum.filter(events, &(Event.conflict?(&1, interval)))
+  # end
 
   defp via_tuple(org_id, room_id) do
     {:via, Registry, {:process_registry, {:room, org_id, room_id}}}
@@ -116,5 +117,25 @@ defmodule Events.Room do
 
   def wtf(room), do: GenServer.call(room, :wtf)
   def handle_call(:wtf, _from, state), do: {:reply, state, state}
+
+  def add_conflicts(room, conflicts) do
+    GenServer.call(room, {:add_conflicts, conflicts})
+  end
+  def handle_call({:add_conflicts, conflicts}, _from, state) do
+    new_state = %__MODULE__{state | conflicts: [conflicts | state.conflicts]}
+    {:reply, new_state, new_state}
+  end
+
+  # def add_conflict(room, ev), do: GenServer.call(room, {:add_conflict, ev})
+  # def handle_call({:add_conflict, event}, _from, state) do
+  #   new_state = %__MODULE__{state | conflicts: [event | state.conflicts]}
+  #   {:reply, new_state, new_state}
+  # end
+
+  def add_event(room, ev), do: GenServer.call(room, {:add_event, ev})
+  def handle_call({:add_event, event}, _from, state) do
+    new_state = %__MODULE__{state | events: [event | state.events]}
+    {:reply, new_state, new_state}
+  end
 
 end

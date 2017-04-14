@@ -1,7 +1,7 @@
 defmodule Events.Event do
   @moduledoc false
 
-  alias Events.{EventList, Helpers, Room}
+  alias Events.{Conflict, EventList, Helpers, Room}
   alias Calendar.DateTime.Interval
   alias Calendar.DateTime, as: CalDT
 
@@ -18,7 +18,7 @@ defmodule Events.Event do
   ]
 
   # TODO: get dynamic tz from org or local
-  @timezone "America/Los_Angeles"
+  @timezone "Etc/UTC"
 
   # +-------+
   # | A P I |
@@ -80,9 +80,9 @@ defmodule Events.Event do
     GenServer.call(event, {:remove_room, room})
   end
 
-  def conflict?(event, %CalDT.Interval{} = interval) when is_pid(event) do
-    GenServer.call(event, {:conflict, interval})
-  end
+  # def conflict?(event, %CalDT.Interval{} = interval) when is_pid(event) do
+  #   GenServer.call(event, {:conflict, interval})
+  # end
 
   # +-------------------+
   # | C A L L B A C K S |
@@ -143,10 +143,10 @@ defmodule Events.Event do
     {:reply, {:ok, new_state}, new_state}
   end
 
-  def handle_call({:conflict, interval}, _from, state) do
-    conflict = do_conflict(state, interval)
-    {:reply, {:ok, conflict}, state}
-  end
+  # def handle_call({:conflict, interval}, _from, state) do
+  #   conflict = do_conflict(state, interval)
+  #   {:reply, {:ok, conflict}, state}
+  # end
 
   # +---------------+
   # | P R I V A T E |
@@ -192,6 +192,13 @@ defmodule Events.Event do
   end
 
   defp do_add_room(state, room) do
+    conflicts =
+      room
+      |> Conflict.check_room_for_conflicts(state.interval, state.recurrence)
+      |> Conflict.create_conflicts(self())
+
+    Room.add_conflicts(room, conflicts)
+
     {:ok, rooms} = Helpers.add_pid_if_unique(state.rooms, room)
     Room.add_event(room, self(), state.interval)
     %__MODULE__{state | rooms: rooms}
@@ -203,10 +210,10 @@ defmodule Events.Event do
     %__MODULE__{state | rooms: rooms}
   end
 
-  defp do_conflict(state, interval) do
-    [state.interval.from, state.interval.to]
-    |> Enum.any?(&(Interval.includes?(interval, &1)))
-  end
+  # defp do_conflict(state, interval) do
+  #   [state.interval.from, state.interval.to]
+  #   |> Enum.any?(&(Interval.includes?(interval, &1)))
+  # end
 
   defp via_tuple(org_id, event_id) do
     {:via, Registry, {:process_registry, {:event, org_id, event_id}}}
