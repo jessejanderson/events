@@ -65,42 +65,59 @@ defmodule Events.Conflict do
   def find_conflicts([], _), do: []
   def find_conflicts(conflicts, {interval, rules}) do
     conflicts
-    |> Stream.map(fn event ->
-      event
+    |> Stream.map(fn conflict ->
+      conflict
       |> guard_time_overlap(interval)
+      |> get_conflict_rules
       |> guard_by_days(rules)
-      |> guard_freq_weekly(interval, rules)
+      |> get_conflict_int
+      |> guard_freq_weekly(rules, interval)
     end)
     |> filter_conflicts
     |> Enum.to_list
   end
 
-  def guard_time_overlap(event, interval) do
-    case intervals_overlap?(Event.interval(event), interval) do
+  def guard_time_overlap(conflict, interval) do
+    case intervals_overlap?(Event.interval(conflict), interval) do
       false -> :no_conflict
-      true  -> {:ok, event}
+      true  -> {:ok, conflict}
     end
   end
 
+  def get_conflict_rules(:no_conflict), do: :no_conflict
+  def get_conflict_rules({:ok, conflict}) do
+    cf_rules = Event.recurrence(conflict)
+    {:ok, conflict, cf_rules}
+  end
+
   def guard_by_days(:no_conflict, _), do: :no_conflict
-  def guard_by_days({:ok, event}, rules) do
-    rules2 = Event.recurrence(event)
+  def guard_by_days({:ok, conflict, cf_rules}, rules) do
     days1 = Map.get(rules, :by_day)
-    days2 = Map.get(rules2, :by_day)
-    check_maybe_common_day?(days1, days2, event)
+    days2 = Map.get(cf_rules, :by_day)
+    case maybe_common_day?(days1, days2) do
+      false -> :no_conflict
+      true  -> {:ok, conflict, cf_rules}
+    end
+  end
+
+  def get_conflict_int(:no_conflict), do: :no_conflict
+  def get_conflict_int({:ok, conflict, cf_rules}) do
+    cf_int = Event.interval(conflict)
+    {:ok, conflict, cf_rules, cf_int}
   end
 
   def guard_freq_weekly(:no_conflict, _, _), do: :no_conflict
-  def guard_freq_weekly({:ok, event}, interval, rules) do
-    rules2 = Event.recurrence(event)
-
-    case Enum.any?([rules, rules2], &weekly?/1) do
+  def guard_freq_weekly({:ok, conflict, cf_rules, cf_int}, rules, interval) do
+    case Enum.any?([rules, cf_rules], &weekly?/1) do
       true ->
         days1 = find_days_of_week(interval, rules)
-        days2 = find_days_of_week(Event.interval(event), rules2)
-        check_maybe_common_day?(days1, days2, event)
+        days2 = find_days_of_week(cf_int, cf_rules)
+        case maybe_common_day?(days1, days2) do
+          false -> :no_conflict
+          true  -> {:ok, conflict, cf_rules, cf_int}
+        end
       false ->
-        {:ok, event}
+        {:ok, conflict, cf_rules, cf_int}
     end
   end
 
@@ -145,13 +162,6 @@ defmodule Events.Conflict do
 
   def before_or_same?(time, time), do: true
   def before_or_same?(tm1, tm2), do: :lt == Time.compare(tm1, tm2)
-
-  def check_maybe_common_day?(days1, days2, event) do
-    case maybe_common_day?(days1, days2) do
-      false -> :no_conflict
-      true  -> {:ok, event}
-    end
-  end
 
   def maybe_common_day?(nil, _), do: false
   def maybe_common_day?(_, nil), do: false
