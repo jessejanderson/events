@@ -35,6 +35,7 @@ defmodule EventsTest do
     assert room in Event.rooms(event)
   end
 
+  @tag :pending
   test "Add a room to 2 events and create a conflict",
   %{event: event, room: room, org_id: org_id} do
     {:ok, event2} = Event.new(org_id, 10_001, "My Second Event")
@@ -52,6 +53,7 @@ defmodule EventsTest do
   end
 
 
+  @tag :pending
   test "generate 20 events and add the same room to create conflicts",
   %{event: event, room: room, org_id: org_id} do
     Event.set_interval(event, @date1, @date4)

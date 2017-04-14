@@ -32,6 +32,7 @@ defmodule RoomTest do
     assert [^event] = Room.events(room)
   end
 
+  @tag :pending
   test "Create conflict for room", %{room: room, org_id: org_id} do
     {:ok, event1} = Event.new(org_id, 1, "My First Event")
     {:ok, event2} = Event.new(org_id, 2, "My Second Event")
