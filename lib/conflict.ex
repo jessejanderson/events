@@ -63,61 +63,80 @@ defmodule Events.Conflict do
   end
 
   def find_conflicts([], _), do: []
-  def find_conflicts(conflicts, {interval, rules}) do
-    conflicts
-    |> Stream.map(fn conflict ->
-      conflict
-      |> guard_time_overlap(interval)
-      |> get_conflict_rules
-      |> guard_by_days(rules)
-      |> get_conflict_int
-      |> guard_freq_weekly(rules, interval)
+  def find_conflicts(events, {new_int, new_rules}) do
+    events
+    |> Stream.map(fn event ->
+      event
+      |> guard_time_overlap(new_int)
+      |> get_rules
+      |> guard_by_days(new_rules)
+      |> get_int
+      |> guard_freq_weekly(new_rules, new_int)
+      |> find_recurring
     end)
     |> filter_conflicts
     |> Enum.to_list
   end
 
-  def guard_time_overlap(conflict, interval) do
-    case intervals_overlap?(Event.interval(conflict), interval) do
+  def guard_time_overlap(event, new_int) do
+    case intervals_overlap?(Event.interval(event), new_int) do
       false -> :no_conflict
-      true  -> {:ok, conflict}
+      true  -> {:ok, event}
     end
   end
 
-  def get_conflict_rules(:no_conflict), do: :no_conflict
-  def get_conflict_rules({:ok, conflict}) do
-    cf_rules = Event.recurrence(conflict)
-    {:ok, conflict, cf_rules}
+  def get_rules(:no_conflict), do: :no_conflict
+  def get_rules({:ok, event}) do
+    ev_rules = Event.recurrence(event)
+    {:ok, event, ev_rules}
   end
 
   def guard_by_days(:no_conflict, _), do: :no_conflict
-  def guard_by_days({:ok, conflict, cf_rules}, rules) do
-    days1 = Map.get(rules, :by_day)
-    days2 = Map.get(cf_rules, :by_day)
+  def guard_by_days({:ok, event, ev_rules}, new_rules) do
+    days1 = Map.get(new_rules, :by_day)
+    days2 = Map.get(ev_rules, :by_day)
     case maybe_common_day?(days1, days2) do
       false -> :no_conflict
-      true  -> {:ok, conflict, cf_rules}
+      true  -> {:ok, event, ev_rules}
     end
   end
 
-  def get_conflict_int(:no_conflict), do: :no_conflict
-  def get_conflict_int({:ok, conflict, cf_rules}) do
-    cf_int = Event.interval(conflict)
-    {:ok, conflict, cf_rules, cf_int}
+  def get_int(:no_conflict), do: :no_conflict
+  def get_int({:ok, event, ev_rules}) do
+    ev_int = Event.interval(event)
+    {:ok, event, ev_rules, ev_int}
   end
 
   def guard_freq_weekly(:no_conflict, _, _), do: :no_conflict
-  def guard_freq_weekly({:ok, conflict, cf_rules, cf_int}, rules, interval) do
-    case Enum.any?([rules, cf_rules], &weekly?/1) do
+  def guard_freq_weekly({:ok, event, ev_rules, ev_int}, new_rules, new_int) do
+    case Enum.any?([new_rules, ev_rules], &weekly?/1) do
+      false ->
+        {:ok, event, ev_rules, ev_int}
       true ->
-        days1 = find_days_of_week(interval, rules)
-        days2 = find_days_of_week(cf_int, cf_rules)
+        days1 = find_days_of_week(new_int, new_rules)
+        days2 = find_days_of_week(ev_int, ev_rules)
         case maybe_common_day?(days1, days2) do
           false -> :no_conflict
-          true  -> {:ok, conflict, cf_rules, cf_int}
+          true  -> {:ok, event, ev_rules, ev_int}
         end
-      false ->
-        {:ok, conflict, cf_rules, cf_int}
+    end
+  end
+
+  def find_recurring(:no_conflict), do: :no_conflict
+  def find_recurring({:ok, event, ev_rules, ev_int}, new_rules, new_int) do
+    # event_occurrences =
+    #   ev_int.from
+    #   |> CalDT.date
+    #   |> RecurringEvents.unfold(ev_rules)
+    ev_date = ev_int.from |> CalDT.to_date
+    new_date = new_int.from |> CalDT.to_date
+    ev_occs = RecurringEvents.unfold(ev_date, ev_rules)
+    new_occs = RecurringEvents.unfold(new_date, new_rules)
+    # TODO: smarter way to do this
+    # only compare to values that are less than
+    case Enum.any?(ev_occs, &(&1 in new_occs)) do
+      false -> :no_conflict
+      true  -> {:ok, event}
     end
   end
 
