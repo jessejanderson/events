@@ -124,19 +124,29 @@ defmodule Events.Conflict do
 
   def find_recurring(:no_conflict), do: :no_conflict
   def find_recurring({:ok, event, ev_rules, ev_int}, new_rules, new_int) do
-    # event_occurrences =
-    #   ev_int.from
-    #   |> CalDT.date
-    #   |> RecurringEvents.unfold(ev_rules)
     ev_date = ev_int.from |> CalDT.to_date
     new_date = new_int.from |> CalDT.to_date
-    ev_occs = RecurringEvents.unfold(ev_date, ev_rules)
-    new_occs = RecurringEvents.unfold(new_date, new_rules)
-    # TODO: smarter way to do this
-    # only compare to values that are less than
-    case Enum.any?(ev_occs, &(&1 in new_occs)) do
+    ev_stream = RecurringEvents.unfold(ev_date, ev_rules)
+    new_stream = RecurringEvents.unfold(new_date, new_rules)
+
+    {:ok, date} = CalD.today_utc |> Calendar.Date.advance(18250)
+
+    ev_occs = ev_stream |> Enum.take_while(&(Date.compare(&1, date) == :lt))
+    new_occs = new_stream |> Enum.take_while(&(Date.compare(&1, date) == :lt))
+
+    case find_first_common_date(ev_occs, new_occs) do
       false -> :no_conflict
-      true  -> {:ok, event}
+      date -> {:ok, event}
+    end
+  end
+
+  def find_first_common_date([], _), do: false
+  def find_first_common_date(_, []), do: false
+  def find_first_common_date([hd | tl1], [hd | tl2]), do: hd
+  def find_first_common_date([date1 | tl1] = dates1, [date2 | tl2] = dates2) do
+    case Date.compare(date1, date2) do
+      :lt -> find_first_common_date(tl1, dates2)
+      :gt -> find_first_common_date(dates1, tl2)
     end
   end
 
